@@ -71,19 +71,28 @@ app.post("/localizations", async (req, res) => {
   }
 });
 
+app.get("/localizations/config", (req, res) => {
+  if (guard(req, res)) {
+    res.send(db.data.config || {});
+  }
+});
+
 app.get("/localizations/:locale", (req, res) => {
   let lang;
   if (req.query.exact !== "true") {
-    lang = req.params.locale.replace(".json", "");
-    const regex = /([a-z]{2})_[A-Z]{2}/;
-    if (regex.test(lang)) {
-      lang = regex.exec(lang)[1];
+    if (db.data.config?.block === "true") {
+      res.send({});
+    } else {
+      lang = req.params.locale.replace(".json", "");
+      const regex = /([a-z]{2})_[A-Z]{2}/;
+      if (regex.test(lang)) {
+        lang = regex.exec(lang)[1];
+      }
+      res.send(db.data[lang] || {});
     }
   } else {
-    lang = req.params.locale;
+    res.send(db.data[req.params.locale] || {});
   }
-
-  res.send(db.data[lang] || {});
 });
 
 app.post("/localizations/:locale", async (req, res) => {

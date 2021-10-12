@@ -1,5 +1,6 @@
 import { Component } from "@angular/core";
 import { FormBuilder } from "@angular/forms";
+import { MatSlideToggleChange } from "@angular/material/slide-toggle";
 
 import { LocalizationsService } from "../services/localizations.service";
 
@@ -7,6 +8,12 @@ import { LocalizationsService } from "../services/localizations.service";
   selector: "app-root",
   template: `
     <div>
+      <h1>Block API</h1>
+      <mat-slide-toggle
+        (change)="blockAPI($event)"
+        [checked]="this.service.blockedAPI$ | async"
+        >Block API</mat-slide-toggle
+      >
       <h1>Set Translation</h1>
       <form matForm [formGroup]="form" (ngSubmit)="submit()">
         <mat-form-field appearance="fill">
@@ -41,11 +48,15 @@ export class AppComponent {
     value: this.fb.control(""),
   });
 
-  constructor(private fb: FormBuilder, private service: LocalizationsService) {}
+  constructor(private fb: FormBuilder, public service: LocalizationsService) {}
 
   submit() {
     console.log(this.form.value);
     const { lang, key, value } = this.form.value;
     this.service.set(lang, key, value);
+  }
+
+  blockAPI(event: MatSlideToggleChange) {
+    this.service.blockAPI(event.checked);
   }
 }

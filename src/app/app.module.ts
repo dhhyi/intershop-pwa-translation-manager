@@ -12,6 +12,7 @@ import { MatPaginatorModule } from "@angular/material/paginator";
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 import { MatRadioModule } from "@angular/material/radio";
 import { MatSelectModule } from "@angular/material/select";
+import { MatSlideToggleModule } from "@angular/material/slide-toggle";
 import { MatSortModule } from "@angular/material/sort";
 import { MatTableModule } from "@angular/material/table";
 import { MatToolbarModule } from "@angular/material/toolbar";
@@ -47,6 +48,7 @@ import { AppComponent } from "./app.component";
     MatRadioModule,
     MatSelectModule,
     ToastrModule.forRoot(),
+    MatSlideToggleModule,
   ],
   providers: [],
   bootstrap: [AppComponent],

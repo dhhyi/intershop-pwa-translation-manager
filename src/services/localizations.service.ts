@@ -1,7 +1,7 @@
 import { HttpClient } from "@angular/common/http";
 import { Injectable } from "@angular/core";
-import { EMPTY } from "rxjs";
-import { catchError } from "rxjs/operators";
+import { EMPTY, timer } from "rxjs";
+import { catchError, map, switchMap } from "rxjs/operators";
 
 import { NotificationService } from "./notification.service";
 
@@ -15,7 +15,17 @@ export class LocalizationsService {
   localizations$ =
     this.http.get<Record<string, string>>(`/localizations/en_US`);
 
-  set(lang: string, key: string, value: string) {
+  private config$ = timer(0, 10000).pipe(
+    switchMap(() =>
+      this.http.get<Record<string, string>>(`/localizations/config`, {
+        headers: {
+          Authorization: "super-safe-password",
+        },
+      })
+    )
+  );
+
+  set(lang: string, key: string, value: unknown) {
     this.http
       .post(`/localizations/${lang}/${key}`, value, {
         headers: {
@@ -32,5 +42,11 @@ export class LocalizationsService {
       .subscribe(() => {
         this.notification.success(`successfully set "${key}" for ${lang}`);
       });
+  }
+
+  blockedAPI$ = this.config$.pipe(map((config) => config?.block === "true"));
+
+  blockAPI(checked: boolean) {
+    this.set("config", "block", checked);
   }
 }
