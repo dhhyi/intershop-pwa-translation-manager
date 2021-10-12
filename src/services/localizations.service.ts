@@ -4,12 +4,21 @@ import {
   BehaviorSubject,
   combineLatest,
   EMPTY,
+  Observable,
   ObservableInput,
   timer,
 } from "rxjs";
 import { catchError, first, map, shareReplay, switchMap } from "rxjs/operators";
 
 import { NotificationService } from "./notification.service";
+
+export interface LocalizationWithBaseType {
+  key: string;
+  base: string;
+  tr: string;
+  missing: boolean;
+  dupe: boolean;
+}
 
 @Injectable({ providedIn: "root" })
 export class LocalizationsService {
@@ -47,7 +56,9 @@ export class LocalizationsService {
       )
     );
 
-  localizationsWithBase$ = (lang: string) =>
+  localizationsWithBase$ = (
+    lang: string
+  ): Observable<LocalizationWithBaseType[]> =>
     combineLatest([this.localizations$("en"), this.localizations$(lang)]).pipe(
       map(([base, loc]) =>
         Object.keys(base).map((key) => ({

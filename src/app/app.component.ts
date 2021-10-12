@@ -1,11 +1,15 @@
-import { Component } from "@angular/core";
+import { AfterViewInit, Component, ViewChild } from "@angular/core";
 import { FormBuilder } from "@angular/forms";
+import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { MatSlideToggleChange } from "@angular/material/slide-toggle";
 import { DomSanitizer } from "@angular/platform-browser";
-import { BehaviorSubject, combineLatest } from "rxjs";
-import { map, shareReplay, switchMap } from "rxjs/operators";
+import { BehaviorSubject, combineLatest, Observable } from "rxjs";
+import { map, shareReplay, startWith, switchMap } from "rxjs/operators";
 
-import { LocalizationsService } from "../services/localizations.service";
+import {
+  LocalizationsService,
+  LocalizationWithBaseType,
+} from "../services/localizations.service";
 
 @Component({
   selector: "app-root",
@@ -36,7 +40,12 @@ import { LocalizationsService } from "../services/localizations.service";
         [checked]="onlyDupes$ | async"
         >Dupes</mat-slide-toggle
       >
-
+      <mat-paginator
+        [pageSizeOptions]="[10, 15, 20, 50, 100, 1000]"
+        showFirstLastButtons
+        [length]="(translations$ | async)?.length"
+      >
+      </mat-paginator>
       <a
         mat-raised-button
         color="primary"
@@ -48,23 +57,39 @@ import { LocalizationsService } from "../services/localizations.service";
       </a>
     </mat-toolbar>
     <div>
-      <table>
-        <tr>
-          <th>Translation Key</th>
-          <th>en</th>
-          <th>{{ lang.value }}</th>
-        </tr>
+      <table
+        *ngIf="(pagedTranslations$ | async)?.length"
+        mat-table
+        [dataSource]="pagedTranslations$"
+      >
+        <ng-container *ngFor="let column of columns">
+          <ng-container [matColumnDef]="column.id">
+            <th mat-header-cell *matHeaderCellDef>
+              {{ column.value }}
+            </th>
+            <td mat-cell *matCellDef="let element">
+              <ng-container [ngSwitch]="true">
+                <ng-container *ngSwitchDefault>
+                  <span
+                    class="unselectable"
+                    [ngClass]="{
+                      'missing-translation': element.missing,
+                      'dupe-translation': element.dupe
+                    }"
+                    >{{ element[column.id] }}</span
+                  >
+                </ng-container>
+              </ng-container>
+            </td>
+          </ng-container>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
         <tr
-          *ngFor="let item of translations$ | async; trackBy: trackByFn"
-          [ngClass]="{
-            'missing-translation': item.missing,
-            'dupe-translation': item.dupe
-          }"
-        >
-          <td>{{ item.key }}</td>
-          <td>{{ item.base }}</td>
-          <td>{{ item.tr }}</td>
-        </tr>
+          mat-row
+          *matRowDef="let row; columns: displayedColumns"
+          (dblclick)="edit(row)"
+        ></tr>
       </table>
     </div>
   `,
@@ -81,14 +106,54 @@ import { LocalizationsService } from "../services/localizations.service";
         height: unset;
         justify-content: space-between;
       }
+      .mat-paginator {
+        background: unset;
+      }
+      .mat-table {
+        width: 100%;
+      }
+      .mat-cell {
+        padding: 5px;
+      }
+      .mat-header-cell {
+        text-align: center;
+      }
+      td.mat-cell:first-of-type,
+      th.mat-header-cell:first-of-type {
+        padding-left: 5px;
+      }
+      td.mat-cell:last-of-type,
+      th.mat-header-cell:last-of-type {
+        padding-right: 5px;
+      }
+      .unselectable {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
     `,
   ],
 })
-export class AppComponent {
+export class AppComponent implements AfterViewInit {
   lang = this.fb.control("");
 
   onlyMissing$ = new BehaviorSubject<boolean>(false);
   onlyDupes$ = new BehaviorSubject<boolean>(false);
+
+  @ViewChild(MatPaginator) paginator: MatPaginator;
+
+  pagedTranslations$: Observable<LocalizationWithBaseType[]>;
+
+  columns = [
+    { id: "key", value: "Translation Key" },
+    { id: "base", value: "Base Language" },
+    { id: "tr", value: "Translation" },
+  ];
+
+  displayedColumns = this.columns.map((x) => x.id);
 
   constructor(
     private fb: FormBuilder,
@@ -118,8 +183,33 @@ export class AppComponent {
     shareReplay(1)
   );
 
+  ngAfterViewInit() {
+    this.pagedTranslations$ = combineLatest([
+      this.translations$,
+      this.paginator.page.pipe(
+        startWith({
+          pageSize: this.paginator.pageSize,
+          pageIndex: 0,
+        } as PageEvent)
+      ),
+    ]).pipe(
+      map(([entries, pageEvent]) => {
+        if (pageEvent.pageIndex !== undefined) {
+          const start = pageEvent.pageIndex * pageEvent.pageSize;
+          return entries.slice(start, start + pageEvent.pageSize);
+        }
+
+        return entries;
+      })
+    );
+  }
+
   trackByFn(idx: number) {
     return idx;
+  }
+
+  edit(element: LocalizationWithBaseType) {
+    console.log("edit", element);
   }
 
   csvDownloadName$ = this.lang.valueChanges.pipe(
