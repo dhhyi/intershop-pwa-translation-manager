@@ -33,10 +33,12 @@ app.get(/.*(html|css|js|ico)$/, express.static("dist"));
 app.use(cors());
 
 function filterBlockedKeys(obj) {
-  const blocked = db.data.config?.["block-keys"] || [];
-  blocked.forEach((key) => {
-    delete obj[key];
-  });
+  if (obj) {
+    const blocked = db.data.config?.["block-keys"] || [];
+    blocked.forEach((key) => {
+      delete obj[key];
+    });
+  }
   return obj;
 }
 

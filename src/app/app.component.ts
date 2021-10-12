@@ -33,12 +33,11 @@ import { LocalizationsService } from "../services/localizations.service";
         <mat-form-field appearance="fill">
           <mat-label>Language</mat-label>
           <mat-select formControlName="lang">
-            <mat-option value="de">de</mat-option>
-            <mat-option value="es">es</mat-option>
-            <mat-option value="it">it</mat-option>
-            <mat-option value="fr">fr</mat-option>
-            <mat-option value="nl">nl</mat-option>
-            <mat-option value="pt">pt</mat-option>
+            <mat-option
+              *ngFor="let lang of service.languages$ | async"
+              [value]="lang"
+              >{{ lang }}</mat-option
+            >
           </mat-select>
         </mat-form-field>
         <mat-form-field appearance="fill">

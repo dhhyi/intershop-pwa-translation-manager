@@ -1,7 +1,7 @@
 import { HttpClient } from "@angular/common/http";
 import { Injectable } from "@angular/core";
 import { combineLatest, EMPTY, timer } from "rxjs";
-import { catchError, map, switchMap } from "rxjs/operators";
+import { catchError, map, shareReplay, switchMap } from "rxjs/operators";
 
 import { NotificationService } from "./notification.service";
 
@@ -40,7 +40,7 @@ export class LocalizationsService {
   private config$ = timer(0, 10000).pipe(
     switchMap(() =>
       this.http
-        .get<Record<string, string>>(`/localizations/config`, {
+        .get<Record<string, unknown>>(`/localizations/config`, {
           headers: {
             Authorization: "super-safe-password",
           },
@@ -51,7 +51,8 @@ export class LocalizationsService {
             return EMPTY;
           })
         )
-    )
+    ),
+    shareReplay(1)
   );
 
   set(lang: string, key: string, value: unknown) {
@@ -78,4 +79,8 @@ export class LocalizationsService {
   blockAPI(checked: boolean) {
     this.set("config", "block", checked);
   }
+
+  languages$ = this.config$.pipe(
+    map((config) => (config?.languages as string[]) || [])
+  );
 }
