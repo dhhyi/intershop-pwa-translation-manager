@@ -42,16 +42,6 @@ app.get(/.*(html|css|js|ico)$/, express.static("dist"));
 
 app.use(cors());
 
-function filterBlockedKeys(obj) {
-  if (obj) {
-    const blocked = db.data.config?.["block-keys"] || [];
-    blocked.forEach((key) => {
-      delete obj[key];
-    });
-  }
-  return obj;
-}
-
 app.get("/localizations/:locale", (req, res, next) => {
   if (req.params.locale === "config") {
     next();
@@ -66,10 +56,10 @@ app.get("/localizations/:locale", (req, res, next) => {
         if (regex.test(lang)) {
           lang = regex.exec(lang)[1];
         }
-        return res.send(filterBlockedKeys(db.data[lang]) || {});
+        return res.send(db.data[lang] || {});
       }
     } else {
-      return res.send(filterBlockedKeys(db.data[req.params.locale]) || {});
+      return res.send(db.data[req.params.locale] || {});
     }
   }
 });
@@ -155,7 +145,7 @@ app.get("/localizations/config/:key", (req, res) => {
 
 app.post("/localizations/:locale", async (req, res) => {
   if (assertFormat(req, "application/json", res)) {
-    db.data[req.params.locale] = filterBlockedKeys(req.body);
+    db.data[req.params.locale] = req.body;
     await db.write();
     return res.sendStatus(204);
   }

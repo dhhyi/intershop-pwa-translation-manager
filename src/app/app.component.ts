@@ -20,6 +20,7 @@ import {
   LocalizationsService,
   LocalizationWithBaseType,
 } from "../services/localizations.service";
+import { NotificationService } from "../services/notification.service";
 
 import { EditDialogComponent } from "./edit-dialog.component";
 
@@ -118,7 +119,8 @@ import { EditDialogComponent } from "./edit-dialog.component";
                     class="unselectable"
                     [ngClass]="{
                       'missing-translation': element.missing,
-                      'dupe-translation': element.dupe
+                      'dupe-translation': element.dupe,
+                      'protected-translation': element.ignored
                     }"
                     >{{ element[column.id] }}</span
                   >
@@ -144,6 +146,9 @@ import { EditDialogComponent } from "./edit-dialog.component";
       }
       .dupe-translation {
         color: green;
+      }
+      .protected-translation {
+        color: grey;
       }
 
       .mat-toolbar {
@@ -213,6 +218,7 @@ export class AppComponent implements AfterViewInit {
     private fb: FormBuilder,
     private dialog: MatDialog,
     public service: LocalizationsService,
+    private notification: NotificationService,
     private sanitizer: DomSanitizer
   ) {}
 
@@ -286,6 +292,13 @@ export class AppComponent implements AfterViewInit {
   }
 
   edit(element: LocalizationWithBaseType) {
+    if (element.ignored) {
+      this.notification.warning(
+        `The translation for "${element.key}" is protected and cannot be changed here.`
+      );
+      return;
+    }
+
     const ref: MatDialogRef<EditDialogComponent, string> = this.dialog.open(
       EditDialogComponent,
       {

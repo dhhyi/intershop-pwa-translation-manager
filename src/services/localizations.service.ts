@@ -4,7 +4,7 @@ import {
   HttpHeaders,
 } from "@angular/common/http";
 import { Injectable } from "@angular/core";
-import { memoize } from "lodash";
+import { isEqual, memoize } from "lodash-es";
 import {
   BehaviorSubject,
   combineLatest,
@@ -13,7 +13,14 @@ import {
   ObservableInput,
   timer,
 } from "rxjs";
-import { catchError, first, map, shareReplay, switchMap } from "rxjs/operators";
+import {
+  catchError,
+  distinctUntilChanged,
+  first,
+  map,
+  shareReplay,
+  switchMap,
+} from "rxjs/operators";
 
 import { NotificationService } from "./notification.service";
 
@@ -23,6 +30,7 @@ export interface LocalizationWithBaseType {
   tr: string;
   missing: boolean;
   dupe: boolean;
+  ignored: boolean;
 }
 
 @Injectable({ providedIn: "root" })
@@ -76,14 +84,19 @@ export class LocalizationsService {
   localizationsWithBase$ = (
     lang: string
   ): Observable<LocalizationWithBaseType[]> =>
-    combineLatest([this.localizations$("en"), this.localizations$(lang)]).pipe(
-      map(([base, loc]) =>
+    combineLatest([
+      this.localizations$("en"),
+      this.localizations$(lang),
+      this.ignoredKeys$,
+    ]).pipe(
+      map(([base, loc, ignored]) =>
         Object.keys(base).map((key) => ({
           key,
           base: this.convertToString(base[key]),
           tr: this.convertToString(loc[key]),
           missing: typeof loc[key] !== "string",
           dupe: loc[key] === base[key],
+          ignored: ignored.includes(key),
         }))
       )
     );
@@ -98,6 +111,11 @@ export class LocalizationsService {
         .pipe(this.errorHandler())
     ),
     shareReplay(1)
+  );
+
+  private ignoredKeys$ = this.config$.pipe(
+    map((config) => (config?.ignored as string[]) || []),
+    distinctUntilChanged<string[]>(isEqual)
   );
 
   set(lang: string, key: string, value: unknown) {
