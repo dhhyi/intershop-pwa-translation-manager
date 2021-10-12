@@ -3,6 +3,7 @@ import { FormBuilder } from "@angular/forms";
 import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { MatSlideToggleChange } from "@angular/material/slide-toggle";
 import { DomSanitizer } from "@angular/platform-browser";
+import { faTimes } from "@fortawesome/free-solid-svg-icons";
 import { BehaviorSubject, combineLatest, Observable } from "rxjs";
 import { map, shareReplay, startWith, switchMap } from "rxjs/operators";
 
@@ -57,15 +58,27 @@ import {
       </a>
     </mat-toolbar>
     <div>
-      <table
-        *ngIf="(pagedTranslations$ | async)?.length"
-        mat-table
-        [dataSource]="pagedTranslations$"
-      >
+      <table mat-table [dataSource]="pagedTranslations$">
         <ng-container *ngFor="let column of columns">
           <ng-container [matColumnDef]="column.id">
             <th mat-header-cell *matHeaderCellDef>
-              {{ column.value }}
+              <mat-form-field class="example-form-field" appearance="standard">
+                <mat-label>{{ column.value }}</mat-label>
+                <input
+                  matInput
+                  type="text"
+                  [formControl]="$any(filters.get(column.id))"
+                />
+                <button
+                  *ngIf="filters.get(column.id).valueChanges | async"
+                  matSuffix
+                  mat-icon-button
+                  aria-label="Clear"
+                  (click)="filters.get(column.id).setValue('')"
+                >
+                  <fa-icon [icon]="faTimes"></fa-icon>
+                </button>
+              </mat-form-field>
             </th>
             <td mat-cell *matCellDef="let element">
               <ng-container [ngSwitch]="true">
@@ -154,6 +167,14 @@ export class AppComponent implements AfterViewInit {
   ];
 
   displayedColumns = this.columns.map((x) => x.id);
+  filters = this.fb.group(
+    this.columns.reduce(
+      (acc, x) => ({ ...acc, [x.id]: this.fb.control(undefined) }),
+      {}
+    )
+  );
+
+  faTimes = faTimes;
 
   constructor(
     private fb: FormBuilder,
@@ -165,18 +186,32 @@ export class AppComponent implements AfterViewInit {
     this.lang.valueChanges,
     this.onlyMissing$,
     this.onlyDupes$,
+    this.filters.valueChanges.pipe<
+      Record<keyof LocalizationWithBaseType, string>
+    >(startWith({})),
   ]).pipe(
-    switchMap(([lang, onlyMissing, onlyDupes]) =>
+    switchMap(([lang, onlyMissing, onlyDupes, filters]) =>
       this.service
         .localizationsWithBase$(lang)
         .pipe(
           map((array) =>
-            array.filter(
-              (e) =>
-                (onlyMissing && e.missing) ||
-                (onlyDupes && e.dupe) ||
-                (!onlyMissing && !onlyDupes)
-            )
+            array
+              .filter(
+                (e) =>
+                  (onlyMissing && e.missing) ||
+                  (onlyDupes && e.dupe) ||
+                  (!onlyMissing && !onlyDupes)
+              )
+              .filter((e) =>
+                (
+                  Object.keys(filters) as (keyof LocalizationWithBaseType)[]
+                ).every(
+                  (key) =>
+                    !filters[key] ||
+                    (typeof e[key] === "string" &&
+                      (e[key] as string)?.includes(filters[key]))
+                )
+              )
           )
         )
     ),
