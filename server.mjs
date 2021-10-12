@@ -77,6 +77,14 @@ app.get("/localizations/config", (req, res) => {
   }
 });
 
+function filterBlockedKeys(obj) {
+  const blocked = db.data.config["block-keys"] || [];
+  blocked.forEach((key) => {
+    delete obj[key];
+  });
+  return obj;
+}
+
 app.get("/localizations/:locale", (req, res) => {
   let lang;
   if (req.query.exact !== "true") {
@@ -88,16 +96,16 @@ app.get("/localizations/:locale", (req, res) => {
       if (regex.test(lang)) {
         lang = regex.exec(lang)[1];
       }
-      res.send(db.data[lang] || {});
+      res.send(filterBlockedKeys(db.data[lang]) || {});
     }
   } else {
-    res.send(db.data[req.params.locale] || {});
+    res.send(filterBlockedKeys(db.data[req.params.locale]) || {});
   }
 });
 
 app.post("/localizations/:locale", async (req, res) => {
   if (assertFormat(req, "application/json", res) && guard(req, res)) {
-    db.data[req.params.locale] = req.body;
+    db.data[req.params.locale] = filterBlockedKeys(req.body);
     await db.write();
     res.sendStatus(204);
   }
