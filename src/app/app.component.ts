@@ -55,6 +55,12 @@ import { EditDialogComponent } from "./edit-dialog.component";
         [disabled]="(lang.valueChanges | async) === null"
         >Dupes</mat-slide-toggle
       >
+      <mat-slide-toggle
+        (change)="onlyEmpty$.next($event.checked)"
+        [checked]="onlyEmpty$ | async"
+        [disabled]="(lang.valueChanges | async) === null"
+        >Empty</mat-slide-toggle
+      >
       <mat-paginator
         [pageSizeOptions]="[10, 15, 20, 50, 100, 1000]"
         showFirstLastButtons
@@ -123,8 +129,8 @@ import { EditDialogComponent } from "./edit-dialog.component";
                       'protected-translation': element.ignored
                     }"
                     ><ng-container
-                      *ngIf="element[column.id] as tr; else undef"
-                      >{{ tr }}</ng-container
+                      *ngIf="element[column.id] !== undefined; else undef"
+                      >{{ element[column.id] }}</ng-container
                     ><ng-template #undef><i>undefined</i></ng-template>
                   </span>
                 </ng-container>
@@ -194,6 +200,7 @@ export class AppComponent implements AfterViewInit {
 
   onlyMissing$ = new BehaviorSubject<boolean>(false);
   onlyDupes$ = new BehaviorSubject<boolean>(false);
+  onlyEmpty$ = new BehaviorSubject<boolean>(false);
 
   @ViewChild(MatPaginator) paginator: MatPaginator;
 
@@ -229,6 +236,7 @@ export class AppComponent implements AfterViewInit {
     this.lang.valueChanges,
     this.onlyMissing$,
     this.onlyDupes$,
+    this.onlyEmpty$,
     this.filters.valueChanges.pipe(
       startWith({}),
       map((record) =>
@@ -241,7 +249,7 @@ export class AppComponent implements AfterViewInit {
       debounceTime(500)
     ),
   ]).pipe(
-    switchMap(([lang, onlyMissing, onlyDupes, filters]) =>
+    switchMap(([lang, onlyMissing, onlyDupes, onlyEmpty, filters]) =>
       this.service
         .localizationsWithBase$(lang)
         .pipe(
@@ -251,7 +259,8 @@ export class AppComponent implements AfterViewInit {
                 (e) =>
                   (onlyMissing && e.missing) ||
                   (onlyDupes && e.dupe) ||
-                  (!onlyMissing && !onlyDupes)
+                  (onlyEmpty && e.tr?.trim() === "") ||
+                  (!onlyMissing && !onlyDupes && !onlyEmpty)
               )
               .filter((e) =>
                 (
