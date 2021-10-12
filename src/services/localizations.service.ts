@@ -12,16 +12,32 @@ export class LocalizationsService {
     private notification: NotificationService
   ) {}
 
-  localizations$ =
-    this.http.get<Record<string, string>>(`/localizations/en_US`);
+  localizations$ = (lang: string) =>
+    this.http
+      .get<Record<string, string>>(`/localizations/${lang}`, {
+        params: { exact: true },
+      })
+      .pipe(
+        catchError((err) => {
+          this.notification.error(err.message);
+          return EMPTY;
+        })
+      );
 
   private config$ = timer(0, 10000).pipe(
     switchMap(() =>
-      this.http.get<Record<string, string>>(`/localizations/config`, {
-        headers: {
-          Authorization: "super-safe-password",
-        },
-      })
+      this.http
+        .get<Record<string, string>>(`/localizations/config`, {
+          headers: {
+            Authorization: "super-safe-password",
+          },
+        })
+        .pipe(
+          catchError((err) => {
+            this.notification.error(err.message);
+            return EMPTY;
+          })
+        )
     )
   );
 

@@ -1,6 +1,7 @@
 import { Component } from "@angular/core";
 import { FormBuilder } from "@angular/forms";
 import { MatSlideToggleChange } from "@angular/material/slide-toggle";
+import { switchMap } from "rxjs/operators";
 
 import { LocalizationsService } from "../services/localizations.service";
 
@@ -37,6 +38,13 @@ import { LocalizationsService } from "../services/localizations.service";
         </mat-form-field>
         <button mat-raised-button color="primary" type="submit">Set</button>
       </form>
+
+      <table>
+        <tr *ngFor="let item of translations$ | async | keyvalue">
+          <td>{{ item.key }}</td>
+          <td>{{ item.value }}</td>
+        </tr>
+      </table>
     </div>
   `,
   styles: [],
@@ -49,6 +57,10 @@ export class AppComponent {
   });
 
   constructor(private fb: FormBuilder, public service: LocalizationsService) {}
+
+  translations$ = this.form
+    .get("lang")
+    .valueChanges.pipe(switchMap((lang) => this.service.localizations$(lang)));
 
   submit() {
     console.log(this.form.value);
