@@ -143,6 +143,34 @@ app.get("/localizations/config/:key", (req, res) => {
   return res.send(data);
 });
 
+app.post("/localizations/config/:key", async (req, res) => {
+  if (!db.data.config) {
+    db.data.config = {};
+  }
+  let value = req.body;
+  if (typeof value === "string") {
+    if ("true" === value?.toLowerCase()) {
+      value = true;
+    } else if ("false" === value?.toLowerCase()) {
+      value = false;
+    }
+  }
+  db.data.config[req.params.key] = value;
+  await db.write();
+  return res.sendStatus(204);
+});
+
+app.delete("/localizations/config/:key", async (req, res) => {
+  if (!db.data.config) {
+    db.data.config = {};
+  }
+  if (db.data.config[req.params.key]) {
+    delete db.data.config[req.params.key];
+  }
+  await db.write();
+  return res.sendStatus(204);
+});
+
 app.post("/localizations/:locale", async (req, res) => {
   if (assertFormat(req, "application/json", res)) {
     db.data[req.params.locale] = req.body;

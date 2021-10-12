@@ -16,8 +16,10 @@ import {
 import {
   catchError,
   distinctUntilChanged,
+  filter,
   first,
   map,
+  pairwise,
   shareReplay,
   switchMap,
 } from "rxjs/operators";
@@ -38,7 +40,16 @@ export class LocalizationsService {
   constructor(
     private http: HttpClient,
     private notification: NotificationService
-  ) {}
+  ) {
+    this.maintenance$
+      .pipe(
+        pairwise(),
+        filter(([before, after]) => before && !after)
+      )
+      .subscribe(() => {
+        this.triggerUpdate$.next();
+      });
+  }
 
   private triggerUpdate$ = new BehaviorSubject<void>(undefined);
 
@@ -170,5 +181,9 @@ export class LocalizationsService {
 
   languages$ = this.config$.pipe(
     map((config) => (config?.languages as string[]) || [])
+  );
+
+  maintenance$ = this.config$.pipe(
+    map((config) => config?.maintenance as boolean)
   );
 }

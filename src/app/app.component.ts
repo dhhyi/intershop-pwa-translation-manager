@@ -27,7 +27,7 @@ import { EditDialogComponent } from "./edit-dialog.component";
 @Component({
   selector: "app-root",
   template: `
-    <mat-toolbar>
+    <mat-toolbar *ngIf="(service.maintenance$ | async) !== true">
       <mat-form-field appearance="standard">
         <mat-label>Language</mat-label>
         <mat-select [formControl]="lang">
@@ -77,7 +77,7 @@ import { EditDialogComponent } from "./edit-dialog.component";
         Download Table
       </a>
     </mat-toolbar>
-    <div>
+    <div *ngIf="(service.maintenance$ | async) !== true; else maintenance">
       <table
         *ngIf="(translations$ | async)?.length || (lang.valueChanges | async)"
         mat-table
@@ -147,6 +147,11 @@ import { EditDialogComponent } from "./edit-dialog.component";
         ></tr>
       </table>
     </div>
+    <ng-template #maintenance>
+      <h1 class="center">MAINTENANCE! Please come by later.</h1>
+      <h2 class="center">The data you entered is in good hands.</h2>
+      <h3 class="center">DON'T PANIC!</h3>
+    </ng-template>
   `,
   styles: [
     `
@@ -191,6 +196,9 @@ import { EditDialogComponent } from "./edit-dialog.component";
         -moz-user-select: none;
         -ms-user-select: none;
         user-select: none;
+      }
+      .center {
+        text-align: center;
       }
     `,
   ],
