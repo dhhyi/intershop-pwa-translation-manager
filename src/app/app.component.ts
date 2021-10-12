@@ -1,5 +1,6 @@
 import { AfterViewInit, Component, ViewChild } from "@angular/core";
 import { FormBuilder } from "@angular/forms";
+import { MatDialog, MatDialogRef } from "@angular/material/dialog";
 import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { MatSlideToggleChange } from "@angular/material/slide-toggle";
 import { DomSanitizer } from "@angular/platform-browser";
@@ -19,6 +20,8 @@ import {
   LocalizationsService,
   LocalizationWithBaseType,
 } from "../services/localizations.service";
+
+import { EditDialogComponent } from "./edit-dialog.component";
 
 @Component({
   selector: "app-root",
@@ -208,6 +211,7 @@ export class AppComponent implements AfterViewInit {
 
   constructor(
     private fb: FormBuilder,
+    private dialog: MatDialog,
     public service: LocalizationsService,
     private sanitizer: DomSanitizer
   ) {}
@@ -282,7 +286,18 @@ export class AppComponent implements AfterViewInit {
   }
 
   edit(element: LocalizationWithBaseType) {
-    console.log("edit", element);
+    const ref: MatDialogRef<EditDialogComponent, string> = this.dialog.open(
+      EditDialogComponent,
+      {
+        data: { element },
+      }
+    );
+
+    ref.afterClosed().subscribe((newTranslation) => {
+      if (newTranslation !== undefined) {
+        this.service.set(this.lang.value, element.key, newTranslation);
+      }
+    });
   }
 
   csvDownloadName$ = this.lang.valueChanges.pipe(

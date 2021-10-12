@@ -1,3 +1,4 @@
+import { CommonModule } from "@angular/common";
 import { HttpClientModule } from "@angular/common/http";
 import { NgModule } from "@angular/core";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
@@ -23,10 +24,13 @@ import { FontAwesomeModule } from "@fortawesome/angular-fontawesome";
 import { ToastrModule } from "ngx-toastr";
 
 import { AppComponent } from "./app.component";
+import { EditDialogComponent } from "./edit-dialog.component";
+
 @NgModule({
-  declarations: [AppComponent],
+  declarations: [AppComponent, EditDialogComponent],
   imports: [
     BrowserModule,
+    CommonModule,
     HttpClientModule,
     BrowserAnimationsModule,
     FormsModule,
@@ -50,7 +54,6 @@ import { AppComponent } from "./app.component";
     ToastrModule.forRoot(),
     MatSlideToggleModule,
   ],
-  providers: [],
   bootstrap: [AppComponent],
 })
 export class AppModule {}
