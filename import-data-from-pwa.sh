@@ -21,7 +21,6 @@ rm en.json
 
 for l in de es fr it nl pt
 do
-    sleep 1
     wget -q -O $l.json "$1/assets/i18n/$l.json"
     curl -f -X POST -H "Content-Type: application/json" $auth -d "@$l.json" $TO/localizations/$l
     rm $l.json

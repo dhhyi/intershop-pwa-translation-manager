@@ -66,7 +66,7 @@ import { LocalizationsService } from "../services/localizations.service";
           <th>{{ form.get("lang").value }}</th>
         </tr>
         <tr
-          *ngFor="let item of translations$ | async"
+          *ngFor="let item of translations$ | async; trackBy: trackByFn"
           [ngClass]="{
             'missing-translation': item.missing,
             'dupe-translation': item.dupe
@@ -128,6 +128,10 @@ export class AppComponent {
     shareReplay(1)
   );
 
+  trackByFn(idx: number) {
+    return idx;
+  }
+
   csvDownloadName$ = this.form.get("lang").valueChanges.pipe(
     map((lang) => {
       return `${lang}.csv`;
@@ -146,6 +150,7 @@ export class AppComponent {
       )
     )
   );
+
   submit() {
     console.log(this.form.value);
     const { lang, key, value } = this.form.value;

@@ -20,6 +20,8 @@ export class LocalizationsService {
 
   private apiPassword$ = new BehaviorSubject<string>("");
 
+  private triggerUpdate$ = new BehaviorSubject<void>(undefined);
+
   private errorHandler = <T>() =>
     catchError<T, ObservableInput<T>>((err) => {
       if (err instanceof HttpErrorResponse && err.status === 401) {
@@ -31,11 +33,15 @@ export class LocalizationsService {
     });
 
   localizations$ = (lang: string) =>
-    this.http
-      .get<Record<string, string>>(`/localizations/${lang}`, {
-        params: { exact: true },
-      })
-      .pipe(this.errorHandler());
+    this.triggerUpdate$.pipe(
+      switchMap(() =>
+        this.http
+          .get<Record<string, string>>(`/localizations/${lang}`, {
+            params: { exact: true },
+          })
+          .pipe(this.errorHandler())
+      )
+    );
 
   localizationsWithBase$ = (lang: string) =>
     combineLatest([this.localizations$("en"), this.localizations$(lang)]).pipe(
@@ -80,6 +86,7 @@ export class LocalizationsService {
       )
       .subscribe(() => {
         this.notification.success(`successfully set "${key}" for ${lang}`);
+        this.triggerUpdate$.next();
       });
   }
 

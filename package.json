@@ -5,7 +5,7 @@
     "ng": "ng",
     "start": "npm-run-all --parallel start:*",
     "start:fe": "ng serve --open",
-    "start:be": "onchange -d 500 -ik server.mjs db.json -- node server.mjs",
+    "start:be": "onchange -d 500 -ik server.mjs -- node server.mjs",
     "build": "ng build",
     "format": "prettier --write .",
     "prepare": "husky install",
