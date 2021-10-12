@@ -1,7 +1,13 @@
-import { HttpClient } from "@angular/common/http";
+import { HttpClient, HttpErrorResponse } from "@angular/common/http";
 import { Injectable } from "@angular/core";
-import { combineLatest, EMPTY, timer } from "rxjs";
-import { catchError, map, shareReplay, switchMap } from "rxjs/operators";
+import {
+  BehaviorSubject,
+  combineLatest,
+  EMPTY,
+  ObservableInput,
+  timer,
+} from "rxjs";
+import { catchError, first, map, shareReplay, switchMap } from "rxjs/operators";
 
 import { NotificationService } from "./notification.service";
 
@@ -12,17 +18,24 @@ export class LocalizationsService {
     private notification: NotificationService
   ) {}
 
+  private apiPassword$ = new BehaviorSubject<string>("");
+
+  private errorHandler = <T>() =>
+    catchError<T, ObservableInput<T>>((err) => {
+      if (err instanceof HttpErrorResponse && err.status === 401) {
+        this.apiPassword$.next(window.prompt("Enter API password"));
+      } else {
+        this.notification.error(err.message);
+      }
+      return EMPTY;
+    });
+
   localizations$ = (lang: string) =>
     this.http
       .get<Record<string, string>>(`/localizations/${lang}`, {
         params: { exact: true },
       })
-      .pipe(
-        catchError((err) => {
-          this.notification.error(err.message);
-          return EMPTY;
-        })
-      );
+      .pipe(this.errorHandler());
 
   localizationsWithBase$ = (lang: string) =>
     combineLatest([this.localizations$("en"), this.localizations$(lang)]).pipe(
@@ -37,37 +50,33 @@ export class LocalizationsService {
       )
     );
 
-  private config$ = timer(0, 10000).pipe(
-    switchMap(() =>
+  private config$ = combineLatest([timer(0, 10000), this.apiPassword$]).pipe(
+    switchMap(([, pass]) =>
       this.http
         .get<Record<string, unknown>>(`/localizations/config`, {
           headers: {
-            Authorization: "super-safe-password",
+            Authorization: pass,
           },
         })
-        .pipe(
-          catchError((err) => {
-            this.notification.error(err.message);
-            return EMPTY;
-          })
-        )
+        .pipe(this.errorHandler())
     ),
     shareReplay(1)
   );
 
   set(lang: string, key: string, value: unknown) {
-    this.http
-      .post(`/localizations/${lang}/${key}`, value, {
-        headers: {
-          "Content-Type": "text/plain",
-          Authorization: "super-safe-password",
-        },
-      })
+    this.apiPassword$
       .pipe(
-        catchError((err) => {
-          this.notification.error(err.message);
-          return EMPTY;
-        })
+        first(),
+        switchMap((pass) =>
+          this.http
+            .post(`/localizations/${lang}/${key}`, value, {
+              headers: {
+                "Content-Type": "text/plain",
+                Authorization: pass,
+              },
+            })
+            .pipe(this.errorHandler())
+        )
       )
       .subscribe(() => {
         this.notification.success(`successfully set "${key}" for ${lang}`);
