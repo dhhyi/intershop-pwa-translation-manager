@@ -3,6 +3,7 @@ WORKDIR /ws
 COPY package.json package-lock.json /ws/
 RUN npm ci && npm run ngcc
 COPY . /ws
+RUN npm run postinstall
 RUN npm run bundle
 
 FROM node:lts-alpine

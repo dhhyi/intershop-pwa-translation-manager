@@ -1,6 +1,7 @@
 /node_modules
 /dist
 db.json
+src/ish-pwa
 
 .dockerignore
 Dockerfile
