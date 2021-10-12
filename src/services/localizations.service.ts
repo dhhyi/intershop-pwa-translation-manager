@@ -4,6 +4,7 @@ import {
   HttpHeaders,
 } from "@angular/common/http";
 import { Injectable } from "@angular/core";
+import { memoize } from "lodash";
 import {
   BehaviorSubject,
   combineLatest,
@@ -55,7 +56,7 @@ export class LocalizationsService {
       return EMPTY;
     });
 
-  localizations$ = (lang: string) =>
+  private localizations$ = memoize((lang: string) =>
     this.triggerUpdate$.pipe(
       switchMap(() =>
         this.http
@@ -63,8 +64,10 @@ export class LocalizationsService {
             params: { exact: true },
           })
           .pipe(this.errorHandler())
-      )
-    );
+      ),
+      shareReplay(1)
+    )
+  );
 
   private convertToString(obj: unknown): string {
     return typeof obj === "string" ? obj : JSON.stringify(obj);
