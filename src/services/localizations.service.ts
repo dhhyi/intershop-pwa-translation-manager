@@ -65,7 +65,7 @@ export class LocalizationsService {
           key,
           base: base[key],
           tr: loc[key],
-          missing: loc[key] === undefined,
+          missing: typeof loc[key] !== "string",
           dupe: loc[key] === base[key],
         }))
       )

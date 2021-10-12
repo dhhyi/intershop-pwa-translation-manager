@@ -89,7 +89,7 @@ import {
                       'missing-translation': element.missing,
                       'dupe-translation': element.dupe
                     }"
-                    >{{ element[column.id] }}</span
+                    >{{ convert(element[column.id]) }}</span
                   >
                 </ng-container>
               </ng-container>
@@ -245,6 +245,10 @@ export class AppComponent implements AfterViewInit {
 
   edit(element: LocalizationWithBaseType) {
     console.log("edit", element);
+  }
+
+  convert(obj: unknown) {
+    return typeof obj === "string" ? obj : JSON.stringify(obj);
   }
 
   csvDownloadName$ = this.lang.valueChanges.pipe(
