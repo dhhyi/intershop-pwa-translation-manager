@@ -2,6 +2,7 @@ import express from "express";
 import { join, dirname } from "path";
 import { existsSync } from "fs";
 import { Low, JSONFile } from "lowdb";
+import cors from "cors";
 
 const DB_FILE_NAME = "db.json";
 const file = join(process.cwd(), DB_FILE_NAME);
@@ -16,9 +17,6 @@ if (!existsSync(DB_FILE_NAME)) {
 
 const app = express();
 
-app.use(express.json());
-app.use(express.text());
-
 // <ANGULAR>
 
 app.get("/", (req, _, next) => {
@@ -31,6 +29,11 @@ app.get(/.*(html|css|js|ico)$/, express.static("dist"));
 // </ANGULAR>
 
 // <DB>
+
+app.use(cors());
+
+app.use(express.json());
+app.use(express.text());
 
 function wrap(res, data) {
   if (data) {
@@ -49,7 +52,7 @@ function assertFormat(req, format, res) {
 }
 
 app.get("/localizations", (_, res) => {
-  wrap(res, db.data);
+  res.send(db.data);
 });
 
 app.post("/localizations", async (req, res) => {
@@ -61,7 +64,7 @@ app.post("/localizations", async (req, res) => {
 });
 
 app.get("/localizations/:locale", (req, res) => {
-  wrap(res, db.data[req.params.locale]);
+  res.send(db.data[req.params.locale.replace(".json", "")] || {});
 });
 
 app.post("/localizations/:locale", async (req, res) => {
