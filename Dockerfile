@@ -1,7 +1,8 @@
 FROM node:lts-alpine as build
-COPY . /ws
 WORKDIR /ws
+COPY package.json package-lock.json /ws/
 RUN npm ci
+COPY . /ws
 RUN npm run bundle
 
 FROM node:lts-alpine

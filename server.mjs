@@ -2,12 +2,9 @@ import express from "express";
 import { join, dirname } from "path";
 import { existsSync } from "fs";
 import { Low, JSONFile } from "lowdb";
-import { fileURLToPath } from "url";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const DB_FILE_NAME = "db.json";
-const file = join(__dirname, DB_FILE_NAME);
+const file = join(process.cwd(), DB_FILE_NAME);
 const adapter = new JSONFile(file);
 const db = new Low(adapter);
 
