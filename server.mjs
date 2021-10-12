@@ -32,7 +32,7 @@ app.get(/.*(html|css|js|ico)$/, express.static("dist"));
 
 app.use(cors());
 
-app.use(express.json());
+app.use(express.json({ limit: "50mb", extended: true }));
 app.use(express.text());
 
 function wrap(res, data) {
@@ -64,7 +64,18 @@ app.post("/localizations", async (req, res) => {
 });
 
 app.get("/localizations/:locale", (req, res) => {
-  res.send(db.data[req.params.locale.replace(".json", "")] || {});
+  let lang;
+  if (req.query.exact !== "true") {
+    lang = req.params.locale.replace(".json", "");
+    const regex = /([a-z]{2})_[A-Z]{2}/;
+    if (regex.test(lang)) {
+      lang = regex.exec(lang)[1];
+    }
+  } else {
+    lang = req.params.locale;
+  }
+
+  res.send(db.data[lang] || {});
 });
 
 app.post("/localizations/:locale", async (req, res) => {
