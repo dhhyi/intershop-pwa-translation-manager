@@ -122,8 +122,11 @@ import { EditDialogComponent } from "./edit-dialog.component";
                       'dupe-translation': element.dupe,
                       'protected-translation': element.ignored
                     }"
-                    >{{ element[column.id] }}</span
-                  >
+                    ><ng-container
+                      *ngIf="element[column.id] as tr; else undef"
+                      >{{ tr }}</ng-container
+                    ><ng-template #undef><i>undefined</i></ng-template>
+                  </span>
                 </ng-container>
               </ng-container>
             </td>
