@@ -1,4 +1,8 @@
-import { HttpClient, HttpErrorResponse } from "@angular/common/http";
+import {
+  HttpClient,
+  HttpErrorResponse,
+  HttpHeaders,
+} from "@angular/common/http";
 import { Injectable } from "@angular/core";
 import {
   BehaviorSubject,
@@ -31,6 +35,12 @@ export class LocalizationsService {
 
   private apiPassword$ = new BehaviorSubject<string>(
     sessionStorage.getItem("API_PASSWORD") || ""
+  );
+
+  private apiPasswordHeaders$ = this.apiPassword$.pipe(
+    map((pass) => ({
+      Authorization: pass,
+    }))
   );
 
   private errorHandler = <T>() =>
@@ -75,30 +85,29 @@ export class LocalizationsService {
       )
     );
 
-  private config$ = combineLatest([timer(0, 10000), this.apiPassword$]).pipe(
-    switchMap(([, pass]) =>
+  private config$ = combineLatest([
+    timer(0, 30000),
+    this.apiPasswordHeaders$,
+  ]).pipe(
+    switchMap(([, headers]) =>
       this.http
-        .get<Record<string, unknown>>(`/localizations/config`, {
-          headers: {
-            Authorization: pass,
-          },
-        })
+        .get<Record<string, unknown>>(`/localizations/config`, { headers })
         .pipe(this.errorHandler())
     ),
     shareReplay(1)
   );
 
   set(lang: string, key: string, value: unknown) {
-    this.apiPassword$
+    this.apiPasswordHeaders$
       .pipe(
         first(),
-        switchMap((pass) =>
+        switchMap((headers) =>
           this.http
             .post(`/localizations/${lang}/${key}`, value, {
-              headers: {
-                "Content-Type": "text/plain",
-                Authorization: pass,
-              },
+              headers: new HttpHeaders(headers).set(
+                "Content-Type",
+                "text/plain"
+              ),
             })
             .pipe(this.errorHandler())
         )
@@ -109,10 +118,33 @@ export class LocalizationsService {
       });
   }
 
-  blockedAPI$ = this.config$.pipe(map((config) => config?.block === "true"));
+  blockedAPI$ = combineLatest([timer(0, 5000), this.apiPasswordHeaders$]).pipe(
+    switchMap(([, headers]) =>
+      this.http
+        .get<boolean>(`/localizations/config/block`, { headers })
+        .pipe(this.errorHandler())
+    )
+  );
 
   blockAPI(checked: boolean) {
-    this.set("config", "block", checked);
+    let method: (headers: any) => Observable<unknown>;
+    if (checked) {
+      method = (headers) =>
+        this.http.put(`/localizations/config/block`, {}, { headers });
+    } else {
+      method = (headers) =>
+        this.http.delete(`/localizations/config/block`, { headers });
+    }
+    this.apiPasswordHeaders$
+      .pipe(
+        first(),
+        switchMap((headers) => method(headers).pipe(this.errorHandler()))
+      )
+      .subscribe(() => {
+        this.notification.success(
+          `successfully ${checked ? "set" : "unset"} API block`
+        );
+      });
   }
 
   languages$ = this.config$.pipe(

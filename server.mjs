@@ -15,6 +15,16 @@ if (!existsSync(DB_FILE_NAME)) {
   await db.write();
 }
 
+const blockList = [];
+
+const timeoutMap = {};
+
+function removeFromBlockList(ip) {
+  if (blockList.includes(ip)) {
+    blockList.splice(blockList.indexOf(ip));
+  }
+}
+
 const app = express();
 
 // <ANGULAR>
@@ -48,7 +58,7 @@ app.get("/localizations/:locale", (req, res, next) => {
   } else {
     let lang;
     if (req.query.exact !== "true") {
-      if (db.data.config?.block === "true") {
+      if (blockList.includes(req.ip)) {
         res.send({});
       } else {
         lang = req.params.locale.replace(".json", "");
@@ -114,6 +124,28 @@ app.post("/localizations", async (req, res) => {
 
 app.get("/localizations/config", (_, res) => {
   return res.send(db.data.config || {});
+});
+
+app.get("/localizations/config/block", (req, res) => {
+  return res.send(blockList.includes(req.ip));
+});
+
+app.put("/localizations/config/block", (req, res) => {
+  if (!blockList.includes(req.ip)) {
+    blockList.push(req.ip);
+    if (timeoutMap[req.ip]) {
+      clearTimeout(timeoutMap[req.ip]);
+    }
+    timeoutMap[req.ip] = setTimeout(() => {
+      removeFromBlockList(req.ip);
+    }, 5 * 60 * 1000);
+  }
+  return res.sendStatus(204);
+});
+
+app.delete("/localizations/config/block", (req, res) => {
+  removeFromBlockList(req.ip);
+  return res.sendStatus(204);
 });
 
 app.get("/localizations/config/:key", (req, res) => {
