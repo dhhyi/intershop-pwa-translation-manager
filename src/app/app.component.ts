@@ -56,6 +56,7 @@ import { LocalizationsService } from "../services/localizations.service";
         color="primary"
         [href]="csvDownloadFile$ | async"
         [download]="csvDownloadName$ | async"
+        [disabled]="(csvDownloadFile$ | async) === null"
       >
         Download
       </a>
