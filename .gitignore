@@ -46,6 +46,7 @@ testem.log
 Thumbs.db
 
 # application
+src/ish-pwa
 db.json
 de.json
 en.json

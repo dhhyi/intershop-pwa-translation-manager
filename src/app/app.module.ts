@@ -21,7 +21,10 @@ import { MatTooltipModule } from "@angular/material/tooltip";
 import { BrowserModule } from "@angular/platform-browser";
 import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
 import { FontAwesomeModule } from "@fortawesome/angular-fontawesome";
+import { TranslateCompiler, TranslateModule } from "@ngx-translate/core";
 import { ToastrModule } from "ngx-toastr";
+
+import { PWATranslateCompiler } from "../ish-pwa/pwa-translate-compiler";
 
 import { AppComponent } from "./app.component";
 import { EditDialogComponent } from "./edit-dialog.component";
@@ -53,6 +56,10 @@ import { EditDialogComponent } from "./edit-dialog.component";
     MatSelectModule,
     ToastrModule.forRoot(),
     MatSlideToggleModule,
+    TranslateModule.forRoot({
+      useDefaultLang: false,
+      compiler: { provide: TranslateCompiler, useClass: PWATranslateCompiler },
+    }),
   ],
   bootstrap: [AppComponent],
 })
