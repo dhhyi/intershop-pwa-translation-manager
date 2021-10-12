@@ -9,3 +9,4 @@ Dockerfile
 .dockerignore
 .gitignore
 dist/**
+db.json
