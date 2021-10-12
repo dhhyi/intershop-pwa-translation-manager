@@ -3,7 +3,7 @@ import { FormBuilder } from "@angular/forms";
 import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { MatSlideToggleChange } from "@angular/material/slide-toggle";
 import { DomSanitizer } from "@angular/platform-browser";
-import { faTimes } from "@fortawesome/free-solid-svg-icons";
+import { faTimes, faEdit } from "@fortawesome/free-solid-svg-icons";
 import escapeStringRegexp from "escape-string-regexp";
 import { mapValues } from "lodash-es";
 import { BehaviorSubject, combineLatest, Observable } from "rxjs";
@@ -76,26 +76,40 @@ import {
         <ng-container *ngFor="let column of columns">
           <ng-container [matColumnDef]="column.id">
             <th mat-header-cell *matHeaderCellDef>
-              <mat-form-field class="example-form-field" appearance="standard">
-                <mat-label>{{ column.value }}</mat-label>
-                <input
-                  matInput
-                  type="text"
-                  [formControl]="$any(filters.get(column.id))"
-                />
-                <button
-                  *ngIf="filters.get(column.id).valueChanges | async"
-                  matSuffix
-                  mat-icon-button
-                  aria-label="Clear"
-                  (click)="filters.get(column.id).setValue('')"
-                >
-                  <fa-icon [icon]="faTimes"></fa-icon>
-                </button>
-              </mat-form-field>
+              <ng-container [ngSwitch]="true">
+                <ng-container *ngSwitchCase="column.id === 'edit'">
+                </ng-container>
+                <ng-container *ngSwitchDefault>
+                  <mat-form-field
+                    class="example-form-field"
+                    appearance="standard"
+                  >
+                    <mat-label>{{ column.value }}</mat-label>
+                    <input
+                      matInput
+                      type="text"
+                      [formControl]="$any(filters.get(column.id))"
+                    />
+                    <button
+                      *ngIf="filters.get(column.id).valueChanges | async"
+                      matSuffix
+                      mat-icon-button
+                      aria-label="Clear"
+                      (click)="filters.get(column.id).setValue('')"
+                    >
+                      <fa-icon [icon]="faTimes"></fa-icon>
+                    </button>
+                  </mat-form-field>
+                </ng-container>
+              </ng-container>
             </th>
             <td mat-cell *matCellDef="let element">
               <ng-container [ngSwitch]="true">
+                <ng-container *ngSwitchCase="column.id === 'edit'">
+                  <a class="icon" (click)="edit(element)"
+                    ><fa-icon [icon]="faEdit"></fa-icon
+                  ></a>
+                </ng-container>
                 <ng-container *ngSwitchDefault>
                   <span
                     class="unselectable"
@@ -177,6 +191,7 @@ export class AppComponent implements AfterViewInit {
   columns = [
     { id: "key", value: "Translation Key" },
     { id: "base", value: "Base Language" },
+    { id: "edit", value: "" },
     { id: "tr", value: "Translation" },
   ];
 
@@ -188,6 +203,7 @@ export class AppComponent implements AfterViewInit {
     )
   );
 
+  faEdit = faEdit;
   faTimes = faTimes;
 
   constructor(
