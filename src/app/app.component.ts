@@ -7,7 +7,13 @@ import { faTimes } from "@fortawesome/free-solid-svg-icons";
 import escapeStringRegexp from "escape-string-regexp";
 import { mapValues } from "lodash-es";
 import { BehaviorSubject, combineLatest, Observable } from "rxjs";
-import { map, shareReplay, startWith, switchMap } from "rxjs/operators";
+import {
+  debounceTime,
+  map,
+  shareReplay,
+  startWith,
+  switchMap,
+} from "rxjs/operators";
 
 import {
   LocalizationsService,
@@ -36,11 +42,13 @@ import {
       <mat-slide-toggle
         (change)="onlyMissing$.next($event.checked)"
         [checked]="onlyMissing$ | async"
+        [disabled]="(lang.valueChanges | async) === null"
         >Missing</mat-slide-toggle
       >
       <mat-slide-toggle
         (change)="onlyDupes$.next($event.checked)"
         [checked]="onlyDupes$ | async"
+        [disabled]="(lang.valueChanges | async) === null"
         >Dupes</mat-slide-toggle
       >
       <mat-paginator
@@ -60,7 +68,11 @@ import {
       </a>
     </mat-toolbar>
     <div>
-      <table mat-table [dataSource]="pagedTranslations$">
+      <table
+        *ngIf="(translations$ | async)?.length || (lang.valueChanges | async)"
+        mat-table
+        [dataSource]="pagedTranslations$"
+      >
         <ng-container *ngFor="let column of columns">
           <ng-container [matColumnDef]="column.id">
             <th mat-header-cell *matHeaderCellDef>
@@ -196,7 +208,8 @@ export class AppComponent implements AfterViewInit {
           (v: unknown) =>
             v && new RegExp(`${escapeStringRegexp(v.toString())}`, "i")
         )
-      )
+      ),
+      debounceTime(500)
     ),
   ]).pipe(
     switchMap(([lang, onlyMissing, onlyDupes, filters]) =>
