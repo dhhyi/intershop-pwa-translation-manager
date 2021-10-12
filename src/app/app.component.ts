@@ -4,6 +4,8 @@ import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { MatSlideToggleChange } from "@angular/material/slide-toggle";
 import { DomSanitizer } from "@angular/platform-browser";
 import { faTimes } from "@fortawesome/free-solid-svg-icons";
+import escapeStringRegexp from "escape-string-regexp";
+import { mapValues } from "lodash-es";
 import { BehaviorSubject, combineLatest, Observable } from "rxjs";
 import { map, shareReplay, startWith, switchMap } from "rxjs/operators";
 
@@ -186,9 +188,16 @@ export class AppComponent implements AfterViewInit {
     this.lang.valueChanges,
     this.onlyMissing$,
     this.onlyDupes$,
-    this.filters.valueChanges.pipe<
-      Record<keyof LocalizationWithBaseType, string>
-    >(startWith({})),
+    this.filters.valueChanges.pipe(
+      startWith({}),
+      map((record) =>
+        mapValues(
+          record,
+          (v: unknown) =>
+            v && new RegExp(`${escapeStringRegexp(v.toString())}`, "i")
+        )
+      )
+    ),
   ]).pipe(
     switchMap(([lang, onlyMissing, onlyDupes, filters]) =>
       this.service
@@ -209,7 +218,7 @@ export class AppComponent implements AfterViewInit {
                   (key) =>
                     !filters[key] ||
                     (typeof e[key] === "string" &&
-                      (e[key] as string)?.includes(filters[key]))
+                      filters[key].test(e[key] as string))
                 )
               )
           )
