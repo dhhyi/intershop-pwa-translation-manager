@@ -1,7 +1,8 @@
 import { Component } from "@angular/core";
 import { FormBuilder } from "@angular/forms";
 import { MatSlideToggleChange } from "@angular/material/slide-toggle";
-import { switchMap } from "rxjs/operators";
+import { BehaviorSubject, combineLatest } from "rxjs";
+import { map, switchMap } from "rxjs/operators";
 
 import { LocalizationsService } from "../services/localizations.service";
 
@@ -14,6 +15,17 @@ import { LocalizationsService } from "../services/localizations.service";
         (change)="blockAPI($event)"
         [checked]="this.service.blockedAPI$ | async"
         >Block API</mat-slide-toggle
+      >
+      <h1>Issues</h1>
+      <mat-slide-toggle
+        (change)="onlyMissing$.next($event.checked)"
+        [checked]="onlyMissing$ | async"
+        >Missing</mat-slide-toggle
+      >
+      <mat-slide-toggle
+        (change)="onlyDupes$.next($event.checked)"
+        [checked]="onlyDupes$ | async"
+        >Dupes</mat-slide-toggle
       >
       <h1>Set Translation</h1>
       <form matForm [formGroup]="form" (ngSubmit)="submit()">
@@ -40,14 +52,35 @@ import { LocalizationsService } from "../services/localizations.service";
       </form>
 
       <table>
-        <tr *ngFor="let item of translations$ | async | keyvalue">
+        <tr>
+          <th>Translation Key</th>
+          <th>en</th>
+          <th>{{ form.get("lang").value }}</th>
+        </tr>
+        <tr
+          *ngFor="let item of translations$ | async"
+          [ngClass]="{
+            'missing-translation': item.missing,
+            'dupe-translation': item.dupe
+          }"
+        >
           <td>{{ item.key }}</td>
-          <td>{{ item.value }}</td>
+          <td>{{ item.base }}</td>
+          <td>{{ item.tr }}</td>
         </tr>
       </table>
     </div>
   `,
-  styles: [],
+  styles: [
+    `
+      .missing-translation {
+        color: red;
+      }
+      .dupe-translation {
+        color: green;
+      }
+    `,
+  ],
 })
 export class AppComponent {
   form = this.fb.group({
@@ -56,11 +89,31 @@ export class AppComponent {
     value: this.fb.control(""),
   });
 
+  onlyMissing$ = new BehaviorSubject<boolean>(false);
+  onlyDupes$ = new BehaviorSubject<boolean>(false);
+
   constructor(private fb: FormBuilder, public service: LocalizationsService) {}
 
-  translations$ = this.form
-    .get("lang")
-    .valueChanges.pipe(switchMap((lang) => this.service.localizations$(lang)));
+  translations$ = combineLatest([
+    this.form.get("lang").valueChanges,
+    this.onlyMissing$,
+    this.onlyDupes$,
+  ]).pipe(
+    switchMap(([lang, onlyMissing, onlyDupes]) =>
+      this.service
+        .localizationsWithBase$(lang)
+        .pipe(
+          map((array) =>
+            array.filter(
+              (e) =>
+                (onlyMissing && e.missing) ||
+                (onlyDupes && e.dupe) ||
+                (!onlyMissing && !onlyDupes)
+            )
+          )
+        )
+    )
+  );
 
   submit() {
     console.log(this.form.value);

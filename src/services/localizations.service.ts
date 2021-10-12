@@ -1,6 +1,6 @@
 import { HttpClient } from "@angular/common/http";
 import { Injectable } from "@angular/core";
-import { EMPTY, timer } from "rxjs";
+import { combineLatest, EMPTY, timer } from "rxjs";
 import { catchError, map, switchMap } from "rxjs/operators";
 
 import { NotificationService } from "./notification.service";
@@ -23,6 +23,19 @@ export class LocalizationsService {
           return EMPTY;
         })
       );
+
+  localizationsWithBase$ = (lang: string) =>
+    combineLatest([this.localizations$("en"), this.localizations$(lang)]).pipe(
+      map(([base, loc]) =>
+        Object.keys(base).map((key) => ({
+          key,
+          base: base[key],
+          tr: loc[key],
+          missing: loc[key] === undefined,
+          dupe: loc[key] === base[key],
+        }))
+      )
+    );
 
   private config$ = timer(0, 10000).pipe(
     switchMap(() =>
