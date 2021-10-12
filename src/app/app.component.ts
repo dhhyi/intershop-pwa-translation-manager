@@ -1,8 +1,9 @@
 import { Component } from "@angular/core";
 import { FormBuilder } from "@angular/forms";
 import { MatSlideToggleChange } from "@angular/material/slide-toggle";
+import { DomSanitizer } from "@angular/platform-browser";
 import { BehaviorSubject, combineLatest } from "rxjs";
-import { map, switchMap } from "rxjs/operators";
+import { map, shareReplay, switchMap } from "rxjs/operators";
 
 import { LocalizationsService } from "../services/localizations.service";
 
@@ -51,6 +52,14 @@ import { LocalizationsService } from "../services/localizations.service";
         <button mat-raised-button color="primary" type="submit">Set</button>
       </form>
 
+      <a
+        mat-raised-button
+        color="primary"
+        [href]="csvDownloadFile$ | async"
+        [download]="csvDownloadName$ | async"
+      >
+        Download
+      </a>
       <table>
         <tr>
           <th>Translation Key</th>
@@ -92,7 +101,11 @@ export class AppComponent {
   onlyMissing$ = new BehaviorSubject<boolean>(false);
   onlyDupes$ = new BehaviorSubject<boolean>(false);
 
-  constructor(private fb: FormBuilder, public service: LocalizationsService) {}
+  constructor(
+    private fb: FormBuilder,
+    public service: LocalizationsService,
+    private sanitizer: DomSanitizer
+  ) {}
 
   translations$ = combineLatest([
     this.form.get("lang").valueChanges,
@@ -112,9 +125,28 @@ export class AppComponent {
             )
           )
         )
-    )
+    ),
+    shareReplay(1)
   );
 
+  csvDownloadName$ = this.form.get("lang").valueChanges.pipe(
+    map((lang) => {
+      return `${lang}.csv`;
+    })
+  );
+
+  csvDownloadFile$ = this.translations$.pipe(
+    map((data) =>
+      data.map((e) => `${e.key};${e.base};${e.tr || ""}`).join("\n")
+    ),
+    map((data) =>
+      this.sanitizer.bypassSecurityTrustResourceUrl(
+        window.URL.createObjectURL(
+          new Blob([data], { type: "application/octet-stream" })
+        )
+      )
+    )
+  );
   submit() {
     console.log(this.form.value);
     const { lang, key, value } = this.form.value;
