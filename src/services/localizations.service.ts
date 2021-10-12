@@ -18,14 +18,18 @@ export class LocalizationsService {
     private notification: NotificationService
   ) {}
 
-  private apiPassword$ = new BehaviorSubject<string>("");
-
   private triggerUpdate$ = new BehaviorSubject<void>(undefined);
+
+  private apiPassword$ = new BehaviorSubject<string>(
+    sessionStorage.getItem("API_PASSWORD") || ""
+  );
 
   private errorHandler = <T>() =>
     catchError<T, ObservableInput<T>>((err) => {
       if (err instanceof HttpErrorResponse && err.status === 401) {
-        this.apiPassword$.next(window.prompt("Enter API password"));
+        const pass = window.prompt("Enter API password");
+        this.apiPassword$.next(pass);
+        sessionStorage.setItem("API_PASSWORD", pass);
       } else {
         this.notification.error(err.message);
       }
