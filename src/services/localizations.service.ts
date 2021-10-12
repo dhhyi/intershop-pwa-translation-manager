@@ -56,6 +56,10 @@ export class LocalizationsService {
       )
     );
 
+  private convertToString(obj: unknown): string {
+    return typeof obj === "string" ? obj : JSON.stringify(obj);
+  }
+
   localizationsWithBase$ = (
     lang: string
   ): Observable<LocalizationWithBaseType[]> =>
@@ -63,8 +67,8 @@ export class LocalizationsService {
       map(([base, loc]) =>
         Object.keys(base).map((key) => ({
           key,
-          base: base[key],
-          tr: loc[key],
+          base: this.convertToString(base[key]),
+          tr: this.convertToString(loc[key]),
           missing: typeof loc[key] !== "string",
           dupe: loc[key] === base[key],
         }))
