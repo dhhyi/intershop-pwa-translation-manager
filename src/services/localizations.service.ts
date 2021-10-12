@@ -22,6 +22,7 @@ import {
   pairwise,
   shareReplay,
   switchMap,
+  withLatestFrom,
 } from "rxjs/operators";
 
 import { NotificationService } from "./notification.service";
@@ -184,6 +185,10 @@ export class LocalizationsService {
   );
 
   maintenance$ = this.config$.pipe(
-    map((config) => config?.maintenance as boolean)
+    withLatestFrom(this.languages$),
+    map(
+      ([config, languages]) =>
+        (config?.maintenance as boolean) || !languages?.length
+    )
   );
 }
