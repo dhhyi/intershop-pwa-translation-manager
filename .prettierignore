@@ -1,0 +1,11 @@
+*.ico
+/src/assets
+/.husky
+*.sh
+.prettierignore
+*.bat
+*.csv
+Dockerfile
+.dockerignore
+.gitignore
+dist/**
