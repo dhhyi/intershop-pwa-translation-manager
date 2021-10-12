@@ -43,8 +43,24 @@ function wrap(res, data) {
   }
 }
 
+function assertFormat(req, format, res) {
+  if (req.get("Content-Type") !== format) {
+    res.status(400).send(`Only Content-Type "${format}" is allowed here!`);
+    return false;
+  }
+  return true;
+}
+
 app.get("/localizations", (_, res) => {
   wrap(res, db.data);
+});
+
+app.post("/localizations", async (req, res) => {
+  if (assertFormat(req, "application/json", res)) {
+    db.data = req.body;
+    await db.write();
+    res.sendStatus(204);
+  }
 });
 
 app.get("/localizations/:locale", (req, res) => {
@@ -52,9 +68,11 @@ app.get("/localizations/:locale", (req, res) => {
 });
 
 app.post("/localizations/:locale", async (req, res) => {
-  db.data[req.params.locale] = req.body;
-  await db.write();
-  res.sendStatus(204);
+  if (assertFormat(req, "application/json", res)) {
+    db.data[req.params.locale] = req.body;
+    await db.write();
+    res.sendStatus(204);
+  }
 });
 
 app.get("/localizations/:locale/:key", (req, res) => {
@@ -62,13 +80,15 @@ app.get("/localizations/:locale/:key", (req, res) => {
 });
 
 app.post("/localizations/:locale/:key", async (req, res) => {
-  if (!db.data[req.params.locale]) {
-    db.data[req.params.locale] = {};
+  if (assertFormat(req, "text/plain", res)) {
+    if (!db.data[req.params.locale]) {
+      db.data[req.params.locale] = {};
+    }
+    console.log("set", req.params.locale, req.params.key, "=", req.body);
+    db.data[req.params.locale][req.params.key] = req.body;
+    await db.write();
+    res.sendStatus(204);
   }
-  console.log("set", req.params.locale, req.params.key, "=", req.body);
-  db.data[req.params.locale][req.params.key] = req.body;
-  await db.write();
-  res.sendStatus(204);
 });
 
 // </DB>
