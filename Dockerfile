@@ -1,7 +1,7 @@
 FROM node:lts-alpine as build
 WORKDIR /ws
 COPY package.json package-lock.json /ws/
-RUN npm ci
+RUN npm ci && npm run ngcc
 COPY . /ws
 RUN npm run bundle
 
