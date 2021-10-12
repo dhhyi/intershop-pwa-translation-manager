@@ -62,6 +62,7 @@ import { LocalizationWithBaseType } from "../services/localizations.service";
         mat-raised-button
         color="primary"
         [matDialogClose]="translation.value"
+        [disabled]="translation.value === original"
       >
         OK
       </button>
@@ -89,6 +90,7 @@ import { LocalizationWithBaseType } from "../services/localizations.service";
 export class EditDialogComponent implements OnDestroy {
   key: string;
   base: string;
+  readonly original: string;
   parameters: FormGroup;
   parameterSelection: Record<string, FormControl>;
   translation = this.fb.control("");
@@ -110,6 +112,7 @@ export class EditDialogComponent implements OnDestroy {
   ) {
     this.key = data.element.key;
     this.base = data.element.base;
+    this.original = data.element.tr;
 
     const args = this.parseArgumentNames(data.element.base);
     this.parameters = this.fb.group(
