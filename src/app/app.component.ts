@@ -10,14 +10,22 @@ import { LocalizationsService } from "../services/localizations.service";
 @Component({
   selector: "app-root",
   template: `
-    <div>
-      <h1>Block API</h1>
+    <mat-toolbar>
+      <mat-form-field appearance="standard">
+        <mat-label>Language</mat-label>
+        <mat-select [formControl]="lang">
+          <mat-option
+            *ngFor="let lang of service.languages$ | async"
+            [value]="lang"
+            >{{ lang }}</mat-option
+          >
+        </mat-select>
+      </mat-form-field>
       <mat-slide-toggle
         (change)="blockAPI($event)"
         [checked]="this.service.blockedAPI$ | async"
         >Block API</mat-slide-toggle
       >
-      <h1>Issues</h1>
       <mat-slide-toggle
         (change)="onlyMissing$.next($event.checked)"
         [checked]="onlyMissing$ | async"
@@ -28,28 +36,6 @@ import { LocalizationsService } from "../services/localizations.service";
         [checked]="onlyDupes$ | async"
         >Dupes</mat-slide-toggle
       >
-      <h1>Set Translation</h1>
-      <form matForm [formGroup]="form" (ngSubmit)="submit()">
-        <mat-form-field appearance="fill">
-          <mat-label>Language</mat-label>
-          <mat-select formControlName="lang">
-            <mat-option
-              *ngFor="let lang of service.languages$ | async"
-              [value]="lang"
-              >{{ lang }}</mat-option
-            >
-          </mat-select>
-        </mat-form-field>
-        <mat-form-field appearance="fill">
-          <mat-label>Key</mat-label>
-          <input matInput formControlName="key" />
-        </mat-form-field>
-        <mat-form-field appearance="fill">
-          <mat-label>Value</mat-label>
-          <input matInput formControlName="value" />
-        </mat-form-field>
-        <button mat-raised-button color="primary" type="submit">Set</button>
-      </form>
 
       <a
         mat-raised-button
@@ -58,13 +44,15 @@ import { LocalizationsService } from "../services/localizations.service";
         [download]="csvDownloadName$ | async"
         [disabled]="(csvDownloadFile$ | async) === null"
       >
-        Download
+        Download Table
       </a>
+    </mat-toolbar>
+    <div>
       <table>
         <tr>
           <th>Translation Key</th>
           <th>en</th>
-          <th>{{ form.get("lang").value }}</th>
+          <th>{{ lang.value }}</th>
         </tr>
         <tr
           *ngFor="let item of translations$ | async; trackBy: trackByFn"
@@ -88,15 +76,16 @@ import { LocalizationsService } from "../services/localizations.service";
       .dupe-translation {
         color: green;
       }
+
+      .mat-toolbar {
+        height: unset;
+        justify-content: space-between;
+      }
     `,
   ],
 })
 export class AppComponent {
-  form = this.fb.group({
-    lang: this.fb.control(""),
-    key: this.fb.control(""),
-    value: this.fb.control(""),
-  });
+  lang = this.fb.control("");
 
   onlyMissing$ = new BehaviorSubject<boolean>(false);
   onlyDupes$ = new BehaviorSubject<boolean>(false);
@@ -108,7 +97,7 @@ export class AppComponent {
   ) {}
 
   translations$ = combineLatest([
-    this.form.get("lang").valueChanges,
+    this.lang.valueChanges,
     this.onlyMissing$,
     this.onlyDupes$,
   ]).pipe(
@@ -133,7 +122,7 @@ export class AppComponent {
     return idx;
   }
 
-  csvDownloadName$ = this.form.get("lang").valueChanges.pipe(
+  csvDownloadName$ = this.lang.valueChanges.pipe(
     map((lang) => {
       return `${lang}.csv`;
     })
@@ -151,12 +140,6 @@ export class AppComponent {
       )
     )
   );
-
-  submit() {
-    console.log(this.form.value);
-    const { lang, key, value } = this.form.value;
-    this.service.set(lang, key, value);
-  }
 
   blockAPI(event: MatSlideToggleChange) {
     this.service.blockAPI(event.checked);
