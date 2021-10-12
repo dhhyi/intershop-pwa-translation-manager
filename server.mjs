@@ -51,12 +51,20 @@ function assertFormat(req, format, res) {
   return true;
 }
 
+function guard(req, res) {
+  if (req.get("Authorization") !== "super-safe-password") {
+    res.sendStatus(401);
+    return false;
+  }
+  return true;
+}
+
 app.get("/localizations", (_, res) => {
   res.send(db.data);
 });
 
 app.post("/localizations", async (req, res) => {
-  if (assertFormat(req, "application/json", res)) {
+  if (assertFormat(req, "application/json", res) && guard(req, res)) {
     db.data = req.body;
     await db.write();
     res.sendStatus(204);
@@ -79,7 +87,7 @@ app.get("/localizations/:locale", (req, res) => {
 });
 
 app.post("/localizations/:locale", async (req, res) => {
-  if (assertFormat(req, "application/json", res)) {
+  if (assertFormat(req, "application/json", res) && guard(req, res)) {
     db.data[req.params.locale] = req.body;
     await db.write();
     res.sendStatus(204);
@@ -91,7 +99,7 @@ app.get("/localizations/:locale/:key", (req, res) => {
 });
 
 app.post("/localizations/:locale/:key", async (req, res) => {
-  if (assertFormat(req, "text/plain", res)) {
+  if (assertFormat(req, "text/plain", res) && guard(req, res)) {
     if (!db.data[req.params.locale]) {
       db.data[req.params.locale] = {};
     }
