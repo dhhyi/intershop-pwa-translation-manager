@@ -7,5 +7,6 @@
     "custom.disclaimer.net-prices",
     "custom.checkout.tac.text_with_privacy"
   ],
+  "baseLang": "en",
   "languages": ["de", "es", "fr", "it", "nl", "pt"]
 }

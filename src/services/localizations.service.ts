@@ -97,7 +97,9 @@ export class LocalizationsService {
     lang: string
   ): Observable<LocalizationWithBaseType[]> =>
     combineLatest([
-      this.localizations$("en"),
+      this.baseLang$.pipe(
+        switchMap((baseLang) => this.localizations$(baseLang))
+      ),
       this.localizations$(lang),
       this.ignoredKeys$,
     ]).pipe(
@@ -128,6 +130,11 @@ export class LocalizationsService {
   private ignoredKeys$ = this.config$.pipe(
     map((config) => (config?.ignored as string[]) || []),
     distinctUntilChanged<string[]>(isEqual)
+  );
+
+  private baseLang$ = this.config$.pipe(
+    map((config) => (config.baseLang as string) || "en"),
+    distinctUntilChanged()
   );
 
   set(lang: string, key: string, value: unknown) {
