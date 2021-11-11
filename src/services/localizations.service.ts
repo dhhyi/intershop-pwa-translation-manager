@@ -71,7 +71,9 @@ export class LocalizationsService {
         this.apiPassword$.next(pass);
         sessionStorage.setItem("API_PASSWORD", pass);
       } else {
-        this.notification.error(err.message);
+        this.notification.error(
+          typeof err.error === "string" ? err.error : err.message
+        );
       }
       return EMPTY;
     });
@@ -198,4 +200,14 @@ export class LocalizationsService {
         (config?.maintenance as boolean) || !languages?.length
     )
   );
+
+  translate(lang: string, text: string): Observable<string> {
+    return this.http
+      .post(
+        "/localizations/translate",
+        { lang, text },
+        { responseType: "text" }
+      )
+      .pipe(this.errorHandler());
+  }
 }

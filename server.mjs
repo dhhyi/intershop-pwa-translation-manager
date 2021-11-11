@@ -3,6 +3,7 @@ import { join } from "path";
 import { existsSync } from "fs";
 import { Low, JSONFile } from "lowdb";
 import cors from "cors";
+import * as googleTranslate from "@google-cloud/translate";
 
 const DB_FILE_NAME = "db.json";
 const file = join(process.cwd(), DB_FILE_NAME);
@@ -169,6 +170,27 @@ app.delete("/localizations/config/:key", async (req, res) => {
   }
   await db.write();
   return res.sendStatus(204);
+});
+
+app.post("/localizations/translate", async (req, res) => {
+  const googleAPIKey = process.env.GOOGLE_API_KEY;
+
+  if (!googleAPIKey) {
+    return res.status(400).send("No Google translate API key is set.");
+  }
+
+  if (assertFormat(req, "application/json", res)) {
+    console.log(req.body);
+    const tr = new googleTranslate.v2.Translate({
+      key: googleAPIKey,
+    });
+    try {
+      const translation = await tr.translate(req.body.text, req.body.lang);
+      return res.send(translation?.[0]);
+    } catch (err) {
+      return res.status(400).send(err.message);
+    }
+  }
 });
 
 app.post("/localizations/:locale", async (req, res) => {

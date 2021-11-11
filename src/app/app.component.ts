@@ -322,7 +322,10 @@ export class AppComponent implements AfterViewInit {
     const ref: MatDialogRef<EditDialogComponent, string> = this.dialog.open(
       EditDialogComponent,
       {
-        data: { element },
+        data: {
+          element,
+          google: this.service.translate(this.lang.value, element.base),
+        },
       }
     );
 

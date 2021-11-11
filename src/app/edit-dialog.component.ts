@@ -46,6 +46,13 @@ import { LocalizationWithBaseType } from "../services/localizations.service";
           </mat-radio-group>
         </div>
       </ng-container>
+      <button
+        *ngIf="!parameters.controls?.length"
+        mat-raised-button
+        (click)="applyGoogleTranslate()"
+      >
+        Google Translate Suggestion
+      </button>
       <textarea
         cdkFocusInitial
         id="translation"
@@ -84,6 +91,9 @@ import { LocalizationWithBaseType } from "../services/localizations.service";
       .mat-radio-button {
         margin-left: 10px;
       }
+      #translation {
+        margin-top: 3px;
+      }
     `,
   ],
 })
@@ -103,8 +113,9 @@ export class EditDialogComponent implements OnDestroy {
   constructor(
     private fb: FormBuilder,
     @Inject(MAT_DIALOG_DATA)
-    data: {
+    private data: {
       element: LocalizationWithBaseType;
+      google: Observable<string>;
     },
     private compiler: TranslateCompiler,
     private parser: TranslateParser,
@@ -188,6 +199,12 @@ export class EditDialogComponent implements OnDestroy {
   setText(arg: string, value: string) {
     this.parameterSelection[arg].setValue("custom");
     this.parameters.controls[arg].setValue(value);
+  }
+
+  applyGoogleTranslate() {
+    this.data.google.subscribe((googleTranslate) => {
+      this.translation.setValue(googleTranslate);
+    });
   }
 
   ngOnDestroy() {
