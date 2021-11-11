@@ -202,12 +202,17 @@ export class LocalizationsService {
   );
 
   translate(lang: string, text: string): Observable<string> {
-    return this.http
-      .post(
-        "/localizations/translate",
-        { lang, text },
-        { responseType: "text" }
+    return this.apiPasswordHeaders$.pipe(
+      first(),
+      switchMap((headers) =>
+        this.http
+          .post(
+            "/localizations/translate",
+            { lang, text },
+            { responseType: "text", headers }
+          )
+          .pipe(this.errorHandler())
       )
-      .pipe(this.errorHandler());
+    );
   }
 }
