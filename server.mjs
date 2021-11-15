@@ -54,7 +54,7 @@ app.get("/localizations/:locale", (req, res, next) => {
       } else {
         lang = req.params.locale.replace(".json", "");
         const regex = /([a-z]{2})_[A-Z]{2}/;
-        if (regex.test(lang)) {
+        if (!db.data[lang] && regex.test(lang)) {
           lang = regex.exec(lang)[1];
         }
         return res.send(db.data[lang] || {});
