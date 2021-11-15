@@ -185,9 +185,13 @@ app.post("/localizations/translate", async (req, res) => {
       key: googleAPIKey,
     });
     try {
-      const translation = await tr.translate(req.body.text, req.body.lang);
+      const translation = await tr.translate(
+        req.body.text,
+        req.body.lang.replace(/_.*$/, "")
+      );
       return res.send(translation?.[0]);
     } catch (err) {
+      console.error(err);
       return res.status(400).send(err.message);
     }
   }
