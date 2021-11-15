@@ -5,6 +5,40 @@ import { Low, JSONFile } from "lowdb";
 import cors from "cors";
 import * as googleTranslate from "@google-cloud/translate";
 
+function BlockList() {
+  const list = [];
+  const timeoutMap = {};
+
+  const includes = (ip) => {
+    if (ip === "::1") {
+      return list.includes("::ffff:127.0.0.1");
+    }
+    return list.includes(ip);
+  };
+
+  const remove = (ip) => {
+    if (includes(ip)) {
+      list.splice(list.indexOf(ip));
+    }
+  };
+
+  const add = (ip) => {
+    if (!includes(ip)) {
+      list.push(ip);
+      if (timeoutMap[ip]) {
+        clearTimeout(timeoutMap[ip]);
+      }
+      timeoutMap[ip] = setTimeout(() => {
+        remove(ip);
+      }, 5 * 60 * 1000);
+    }
+  };
+
+  return { includes, add, remove };
+}
+
+const blockList = BlockList();
+
 const DB_FILE_NAME = "db.json";
 const file = join(process.cwd(), DB_FILE_NAME);
 const adapter = new JSONFile(file);
@@ -14,16 +48,6 @@ await db.read();
 db.data = db.data || {};
 if (!existsSync(DB_FILE_NAME)) {
   await db.write();
-}
-
-const blockList = [];
-
-const timeoutMap = {};
-
-function removeFromBlockList(ip) {
-  if (blockList.includes(ip)) {
-    blockList.splice(blockList.indexOf(ip));
-  }
 }
 
 const app = express();
@@ -122,20 +146,12 @@ app.get("/localizations/config/block", (req, res) => {
 });
 
 app.put("/localizations/config/block", (req, res) => {
-  if (!blockList.includes(req.ip)) {
-    blockList.push(req.ip);
-    if (timeoutMap[req.ip]) {
-      clearTimeout(timeoutMap[req.ip]);
-    }
-    timeoutMap[req.ip] = setTimeout(() => {
-      removeFromBlockList(req.ip);
-    }, 5 * 60 * 1000);
-  }
+  blockList.add(req.ip);
   return res.sendStatus(204);
 });
 
 app.delete("/localizations/config/block", (req, res) => {
-  removeFromBlockList(req.ip);
+  blockList.remove(req.ip);
   return res.sendStatus(204);
 });
 
