@@ -3,7 +3,15 @@ import { FormBuilder, FormControl, FormGroup } from "@angular/forms";
 import { MAT_DIALOG_DATA } from "@angular/material/dialog";
 import { DomSanitizer, SafeHtml } from "@angular/platform-browser";
 import { TranslateCompiler, TranslateParser } from "@ngx-translate/core";
-import { combineLatest, interval, merge, Observable, of, Subject } from "rxjs";
+import {
+  BehaviorSubject,
+  combineLatest,
+  interval,
+  merge,
+  Observable,
+  of,
+  Subject,
+} from "rxjs";
 import { map, startWith, takeUntil } from "rxjs/operators";
 
 import { LocalizationWithBaseType } from "../services/localizations.service";
@@ -53,12 +61,18 @@ import { LocalizationWithBaseType } from "../services/localizations.service";
       >
         Google Translate Suggestion
       </button>
+      <mat-slide-toggle
+        (change)="replaceOnPaste$.next($event.checked)"
+        [checked]="replaceOnPaste$ | async"
+        >Replace on paste</mat-slide-toggle
+      >
       <textarea
         cdkFocusInitial
         id="translation"
         cols="30"
         rows="5"
         [formControl]="translation"
+        (paste)="onPaste($event)"
       ></textarea>
       <mat-card>
         <div [innerHTML]="interpolation$ | async"></div>
@@ -107,6 +121,8 @@ export class EditDialogComponent implements OnDestroy {
 
   interpolationBase$: Observable<SafeHtml>;
   interpolation$: Observable<SafeHtml>;
+
+  replaceOnPaste$ = new BehaviorSubject(true);
 
   private destroy$ = new Subject();
 
@@ -205,6 +221,14 @@ export class EditDialogComponent implements OnDestroy {
     this.data.google.subscribe((googleTranslate) => {
       this.translation.setValue(googleTranslate);
     });
+  }
+
+  onPaste(event: ClipboardEvent) {
+    if (this.replaceOnPaste$.value) {
+      const pasted = event.clipboardData.getData("text")?.trim();
+      this.translation.setValue(pasted);
+      event.preventDefault();
+    }
   }
 
   ngOnDestroy() {
