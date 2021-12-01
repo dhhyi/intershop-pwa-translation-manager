@@ -233,6 +233,16 @@ app.post("/localizations/:locale/:key", async (req, res) => {
   }
 });
 
+app.delete("/localizations/:locale/:key", async (req, res) => {
+  if (!db.data[req.params.locale]) {
+    db.data[req.params.locale] = {};
+  }
+  console.log("delete", req.params.locale, req.params.key);
+  db.data[req.params.locale][req.params.key] = undefined;
+  await db.write();
+  return res.sendStatus(204);
+});
+
 // </DB>
 
 app.use((_, res) => {

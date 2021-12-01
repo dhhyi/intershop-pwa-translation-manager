@@ -160,6 +160,27 @@ export class LocalizationsService {
       });
   }
 
+  delete(lang: string, key: string) {
+    this.apiPasswordHeaders$
+      .pipe(
+        first(),
+        switchMap((headers) =>
+          this.http
+            .delete(`/localizations/${lang}/${key}`, {
+              headers: new HttpHeaders(headers).set(
+                "Content-Type",
+                "text/plain"
+              ),
+            })
+            .pipe(this.errorHandler())
+        )
+      )
+      .subscribe(() => {
+        this.notification.success(`successfully deleted "${key}" for ${lang}`);
+        this.triggerUpdate$.next();
+      });
+  }
+
   blockedAPI$ = combineLatest([timer(0, 5000), this.apiPasswordHeaders$]).pipe(
     switchMap(([, headers]) =>
       this.http

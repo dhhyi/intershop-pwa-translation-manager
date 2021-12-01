@@ -4,7 +4,7 @@ import { MatDialog, MatDialogRef } from "@angular/material/dialog";
 import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { MatSlideToggleChange } from "@angular/material/slide-toggle";
 import { DomSanitizer } from "@angular/platform-browser";
-import { faTimes, faEdit } from "@fortawesome/free-solid-svg-icons";
+import { faTimes, faEdit, faTrash } from "@fortawesome/free-solid-svg-icons";
 import escapeStringRegexp from "escape-string-regexp";
 import { mapValues } from "lodash-es";
 import { BehaviorSubject, combineLatest, Observable } from "rxjs";
@@ -22,6 +22,7 @@ import {
 } from "../services/localizations.service";
 import { NotificationService } from "../services/notification.service";
 
+import { ConfirmDialogComponent } from "./confirm-dialog.component";
 import { EditDialogComponent } from "./edit-dialog.component";
 
 @Component({
@@ -89,6 +90,8 @@ import { EditDialogComponent } from "./edit-dialog.component";
               <ng-container [ngSwitch]="true">
                 <ng-container *ngSwitchCase="column.id === 'edit'">
                 </ng-container>
+                <ng-container *ngSwitchCase="column.id === 'delete'">
+                </ng-container>
                 <ng-container *ngSwitchDefault>
                   <mat-form-field
                     class="example-form-field"
@@ -118,6 +121,14 @@ import { EditDialogComponent } from "./edit-dialog.component";
                 <ng-container *ngSwitchCase="column.id === 'edit'">
                   <a class="icon" (click)="edit(element)"
                     ><fa-icon [icon]="faEdit"></fa-icon
+                  ></a>
+                </ng-container>
+                <ng-container *ngSwitchCase="column.id === 'delete'">
+                  <a
+                    *ngIf="!element.missing"
+                    class="icon"
+                    (click)="remove(element)"
+                    ><fa-icon [icon]="faTrash"></fa-icon
                   ></a>
                 </ng-container>
                 <ng-container *ngSwitchDefault>
@@ -219,6 +230,7 @@ export class AppComponent implements AfterViewInit {
     { id: "base", value: "Base Language" },
     { id: "edit", value: "" },
     { id: "tr", value: "Translation" },
+    { id: "delete", value: "" },
   ];
 
   displayedColumns = this.columns.map((x) => x.id);
@@ -231,6 +243,7 @@ export class AppComponent implements AfterViewInit {
 
   faEdit = faEdit;
   faTimes = faTimes;
+  faTrash = faTrash;
 
   constructor(
     private fb: FormBuilder,
@@ -332,6 +345,17 @@ export class AppComponent implements AfterViewInit {
     ref.afterClosed().subscribe((newTranslation) => {
       if (newTranslation !== undefined) {
         this.service.set(this.lang.value, element.key, newTranslation);
+      }
+    });
+  }
+
+  remove(element: LocalizationWithBaseType) {
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      data: `Really delete translation '${element.tr}' for key '${element.key}'`,
+    });
+    ref.afterClosed().subscribe((confirmation) => {
+      if (confirmation) {
+        this.service.delete(this.lang.value, element.key);
       }
     });
   }

@@ -27,10 +27,11 @@ import { ToastrModule } from "ngx-toastr";
 import { PWATranslateCompiler } from "../ish-pwa/pwa-translate-compiler";
 
 import { AppComponent } from "./app.component";
+import { ConfirmDialogComponent } from "./confirm-dialog.component";
 import { EditDialogComponent } from "./edit-dialog.component";
 
 @NgModule({
-  declarations: [AppComponent, EditDialogComponent],
+  declarations: [AppComponent, EditDialogComponent, ConfirmDialogComponent],
   imports: [
     BrowserModule,
     CommonModule,
