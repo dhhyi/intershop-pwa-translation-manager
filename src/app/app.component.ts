@@ -367,9 +367,7 @@ export class AppComponent implements AfterViewInit {
   );
 
   csvDownloadFile$ = this.translations$.pipe(
-    map((data) =>
-      data.map((e) => `${e.key};${e.base};${e.tr || ""}`).join("\n")
-    ),
+    map((data) => data.map((e) => this.csvLine(e)).join("\n")),
     map((data) =>
       this.sanitizer.bypassSecurityTrustResourceUrl(
         window.URL.createObjectURL(
@@ -378,6 +376,16 @@ export class AppComponent implements AfterViewInit {
       )
     )
   );
+
+  private escapeCsvCell(s: string): string {
+    return !s ? "" : '"' + s?.replace(/"/g, '""') + '"';
+  }
+
+  private csvLine(e: LocalizationWithBaseType): string {
+    return [e.key, this.escapeCsvCell(e.base), this.escapeCsvCell(e.tr)].join(
+      ";"
+    );
+  }
 
   blockAPI(event: MatSlideToggleChange) {
     this.service.blockAPI(event.checked);
