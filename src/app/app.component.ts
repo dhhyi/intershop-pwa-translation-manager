@@ -186,6 +186,9 @@ import { EditDialogComponent } from "./edit-dialog.component";
       .mat-table {
         width: 100%;
       }
+      .mat-row:nth-child(odd) {
+        background-color: #eee;
+      }
       .mat-cell {
         padding: 5px;
       }
