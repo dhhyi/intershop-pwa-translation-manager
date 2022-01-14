@@ -48,13 +48,7 @@ Thumbs.db
 # application
 src/ish-pwa
 db.json
-de.json
-en.json
-es.json
-fr.json
-it.json
-nl.json
-pt.json
+[a-z][a-z].json
 
 # mgmt
 TODO.md
