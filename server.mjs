@@ -4,6 +4,7 @@ import { existsSync } from "fs";
 import { Low, JSONFile } from "lowdb";
 import cors from "cors";
 import * as googleTranslate from "@google-cloud/translate";
+import { parse } from "csv-parse/sync";
 
 function BlockList() {
   const list = [];
@@ -210,6 +211,76 @@ app.post("/localizations/translate", async (req, res) => {
       console.error(err);
       return res.status(400).send(err.message);
     }
+  }
+});
+
+app.post("/localizations/import/:locale", async (req, res) => {
+  if (assertFormat(req, "text/plain", res)) {
+    if (!req.query.type) {
+      return res
+        .status(400)
+        .send(
+          "Query parameter 'type' is required. Options: replace, overwrite, add"
+        );
+    }
+
+    if (!["replace", "overwrite", "add"].some((t) => t === req.query.type)) {
+      return res
+        .status(400)
+        .send(
+          "Value for query parameter 'type' is not supported. Options: replace, overwrite, add"
+        );
+    }
+
+    let data;
+    try {
+      data = JSON.parse(req.body);
+    } catch (e1) {
+      try {
+        data = parse(req.body, {
+          delimiter: ";",
+          encoding: "utf-8",
+          recordDelimiter: ["\n", "\r", "\r\n"],
+          skip_empty_lines: true,
+        }).reduce(
+          (acc, [key, , translation]) => ({ ...acc, [key]: translation }),
+          {}
+        );
+      } catch (e2) {
+        console.error(e2);
+        return res.status(400).send("Could not parse CSV or JSON content");
+      }
+    }
+
+    if (!Object.keys(data).length) {
+      return req
+        .status(400)
+        .send("Could not parse any data in the CSV or JSON content");
+    }
+
+    if (!db.data[req.params.locale]) {
+      db.data[req.params.locale] = {};
+    }
+
+    switch (req.query.type) {
+      case "replace":
+        db.data[req.params.locale] = data;
+        break;
+
+      case "overwrite":
+        db.data[req.params.locale] = { ...db.data[req.params.locale], ...data };
+        break;
+
+      case "add":
+        db.data[req.params.locale] = { ...data, ...db.data[req.params.locale] };
+        break;
+
+      default:
+        return res.sendStatus(400);
+    }
+
+    await db.write();
+    return res.sendStatus(204);
   }
 });
 

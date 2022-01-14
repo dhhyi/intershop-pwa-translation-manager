@@ -49,6 +49,7 @@ Thumbs.db
 src/ish-pwa
 db.json
 [a-z][a-z].json
+[a-z][a-z].csv
 
 # mgmt
 TODO.md

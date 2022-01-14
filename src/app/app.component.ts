@@ -11,6 +11,7 @@ import {
   faTrash,
   faBars,
   faFileDownload,
+  faFileUpload,
 } from "@fortawesome/free-solid-svg-icons";
 import escapeStringRegexp from "escape-string-regexp";
 import { mapValues } from "lodash-es";
@@ -32,6 +33,7 @@ import { NotificationService } from "../services/notification.service";
 
 import { ConfirmDialogComponent } from "./confirm-dialog.component";
 import { EditDialogComponent } from "./edit-dialog.component";
+import { UploadDialogComponent } from "./upload-dialog.component";
 
 @Component({
   selector: "app-root",
@@ -92,6 +94,14 @@ import { EditDialogComponent } from "./edit-dialog.component";
         >
           <fa-icon [icon]="faFileDownload"></fa-icon>
           <span>Download Table</span>
+        </a>
+        <a
+          mat-menu-item
+          [disabled]="!lang.value"
+          (click)="uploadTranslations()"
+        >
+          <fa-icon [icon]="faFileUpload"></fa-icon>
+          <span>Upload</span>
         </a>
       </mat-menu>
     </mat-toolbar>
@@ -270,6 +280,7 @@ export class AppComponent implements AfterViewInit {
   faTrash = faTrash;
   faBars = faBars;
   faFileDownload = faFileDownload;
+  faFileUpload = faFileUpload;
 
   constructor(
     private fb: FormBuilder,
@@ -415,6 +426,17 @@ export class AppComponent implements AfterViewInit {
       )
     )
   );
+
+  uploadTranslations() {
+    const ref: MatDialogRef<
+      UploadDialogComponent,
+      { data: string; uploadType: string }
+    > = this.dialog.open(UploadDialogComponent, { maxWidth: "40vw" });
+
+    ref.afterClosed().subscribe((data) => {
+      this.service.upload(this.lang.value, data.uploadType, data.data);
+    });
+  }
 
   private escapeCsvCell(s: string): string {
     return !s ? "" : '"' + s?.replace(/"/g, '""') + '"';

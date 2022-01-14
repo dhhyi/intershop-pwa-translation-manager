@@ -8,6 +8,7 @@ import { MatButtonToggleModule } from "@angular/material/button-toggle";
 import { MatCardModule } from "@angular/material/card";
 import { MatCheckboxModule } from "@angular/material/checkbox";
 import { MatDialogModule } from "@angular/material/dialog";
+import { MatExpansionModule } from "@angular/material/expansion";
 import { MatInputModule } from "@angular/material/input";
 import { MatMenuModule } from "@angular/material/menu";
 import { MatPaginatorModule } from "@angular/material/paginator";
@@ -31,9 +32,15 @@ import { PWATranslateCompiler } from "../ish-pwa/pwa-translate-compiler";
 import { AppComponent } from "./app.component";
 import { ConfirmDialogComponent } from "./confirm-dialog.component";
 import { EditDialogComponent } from "./edit-dialog.component";
+import { UploadDialogComponent } from "./upload-dialog.component";
 
 @NgModule({
-  declarations: [AppComponent, EditDialogComponent, ConfirmDialogComponent],
+  declarations: [
+    AppComponent,
+    EditDialogComponent,
+    ConfirmDialogComponent,
+    UploadDialogComponent,
+  ],
   imports: [
     BrowserModule,
     CommonModule,
@@ -60,6 +67,7 @@ import { EditDialogComponent } from "./edit-dialog.component";
     ToastrModule.forRoot(),
     MatSlideToggleModule,
     MatMenuModule,
+    MatExpansionModule,
     TranslateModule.forRoot({
       useDefaultLang: false,
       compiler: { provide: TranslateCompiler, useClass: PWATranslateCompiler },
