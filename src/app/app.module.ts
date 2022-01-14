@@ -21,6 +21,7 @@ import { MatToolbarModule } from "@angular/material/toolbar";
 import { MatTooltipModule } from "@angular/material/tooltip";
 import { BrowserModule } from "@angular/platform-browser";
 import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
+import { RouterModule } from "@angular/router";
 import { FontAwesomeModule } from "@fortawesome/angular-fontawesome";
 import { TranslateCompiler, TranslateModule } from "@ngx-translate/core";
 import { ToastrModule } from "ngx-toastr";
@@ -63,6 +64,7 @@ import { EditDialogComponent } from "./edit-dialog.component";
       useDefaultLang: false,
       compiler: { provide: TranslateCompiler, useClass: PWATranslateCompiler },
     }),
+    RouterModule.forRoot([]),
   ],
   bootstrap: [AppComponent],
 })

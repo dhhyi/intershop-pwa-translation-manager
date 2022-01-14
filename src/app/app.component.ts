@@ -4,6 +4,7 @@ import { MatDialog, MatDialogRef } from "@angular/material/dialog";
 import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { MatSlideToggleChange } from "@angular/material/slide-toggle";
 import { DomSanitizer } from "@angular/platform-browser";
+import { ActivatedRoute, Router } from "@angular/router";
 import {
   faTimes,
   faEdit,
@@ -17,6 +18,7 @@ import { BehaviorSubject, combineLatest, Observable } from "rxjs";
 import {
   debounceTime,
   map,
+  pluck,
   shareReplay,
   startWith,
   switchMap,
@@ -274,8 +276,21 @@ export class AppComponent implements AfterViewInit {
     private dialog: MatDialog,
     public service: LocalizationsService,
     private notification: NotificationService,
-    private sanitizer: DomSanitizer
-  ) {}
+    private sanitizer: DomSanitizer,
+    route: ActivatedRoute,
+    router: Router
+  ) {
+    route.queryParams.pipe(pluck("lang")).subscribe((lang) => {
+      if (lang && lang !== this.lang.value) {
+        this.lang.setValue(lang);
+      }
+    });
+    this.lang.valueChanges.subscribe((lang) => {
+      if (lang) {
+        router.navigate([], { queryParams: { lang }, relativeTo: route });
+      }
+    });
+  }
 
   translations$ = combineLatest([
     this.lang.valueChanges,
