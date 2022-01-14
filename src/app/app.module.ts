@@ -9,6 +9,7 @@ import { MatCardModule } from "@angular/material/card";
 import { MatCheckboxModule } from "@angular/material/checkbox";
 import { MatDialogModule } from "@angular/material/dialog";
 import { MatInputModule } from "@angular/material/input";
+import { MatMenuModule } from "@angular/material/menu";
 import { MatPaginatorModule } from "@angular/material/paginator";
 import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
 import { MatRadioModule } from "@angular/material/radio";
@@ -57,6 +58,7 @@ import { EditDialogComponent } from "./edit-dialog.component";
     MatSelectModule,
     ToastrModule.forRoot(),
     MatSlideToggleModule,
+    MatMenuModule,
     TranslateModule.forRoot({
       useDefaultLang: false,
       compiler: { provide: TranslateCompiler, useClass: PWATranslateCompiler },

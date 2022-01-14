@@ -4,7 +4,13 @@ import { MatDialog, MatDialogRef } from "@angular/material/dialog";
 import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { MatSlideToggleChange } from "@angular/material/slide-toggle";
 import { DomSanitizer } from "@angular/platform-browser";
-import { faTimes, faEdit, faTrash } from "@fortawesome/free-solid-svg-icons";
+import {
+  faTimes,
+  faEdit,
+  faTrash,
+  faBars,
+  faFileDownload,
+} from "@fortawesome/free-solid-svg-icons";
 import escapeStringRegexp from "escape-string-regexp";
 import { mapValues } from "lodash-es";
 import { BehaviorSubject, combineLatest, Observable } from "rxjs";
@@ -68,15 +74,24 @@ import { EditDialogComponent } from "./edit-dialog.component";
         [length]="(translations$ | async)?.length"
       >
       </mat-paginator>
-      <a
-        mat-raised-button
-        color="primary"
-        [href]="csvDownloadFile$ | async"
-        [download]="csvDownloadName$ | async"
-        [disabled]="(csvDownloadFile$ | async) === null"
+      <button
+        mat-icon-button
+        [matMenuTriggerFor]="menu"
+        aria-label="More Actions"
       >
-        Download Table
-      </a>
+        <fa-icon [icon]="faBars" size="lg"></fa-icon>
+      </button>
+      <mat-menu #menu="matMenu">
+        <a
+          mat-menu-item
+          [href]="csvDownloadFile$ | async"
+          [download]="csvDownloadName$ | async"
+          [disabled]="(csvDownloadFile$ | async) === null"
+        >
+          <fa-icon [icon]="faFileDownload"></fa-icon>
+          <span>Download Table</span>
+        </a>
+      </mat-menu>
     </mat-toolbar>
     <div *ngIf="(service.maintenance$ | async) !== true; else maintenance">
       <table
@@ -183,6 +198,10 @@ import { EditDialogComponent } from "./edit-dialog.component";
       .mat-paginator {
         background: unset;
       }
+      .mat-menu-item > .ng-fa-icon {
+        margin-right: 20px;
+      }
+
       .mat-table {
         width: 100%;
       }
@@ -247,6 +266,8 @@ export class AppComponent implements AfterViewInit {
   faEdit = faEdit;
   faTimes = faTimes;
   faTrash = faTrash;
+  faBars = faBars;
+  faFileDownload = faFileDownload;
 
   constructor(
     private fb: FormBuilder,
