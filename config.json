@@ -1,12 +1,5 @@
 {
-  "ignored": [
-    "custom.contact-us.link",
-    "custom.seo.applicationName",
-    "custom.footer.content",
-    "custom.footer.legal_statement",
-    "custom.disclaimer.net-prices",
-    "custom.checkout.tac.text_with_privacy"
-  ],
+  "ignored": [],
   "baseLang": "en",
-  "languages": ["de", "es", "fr", "it", "nl", "pt", "sv"]
+  "languages": ["de"]
 }

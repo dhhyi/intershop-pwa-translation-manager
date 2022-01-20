@@ -41,7 +41,10 @@ function BlockList() {
 const blockList = BlockList();
 
 const DB_FILE_NAME = "db.json";
-const file = join(process.cwd(), DB_FILE_NAME);
+const file = join(process.env.DB_LOCATION || process.cwd(), DB_FILE_NAME);
+
+console.log("storage location:", file);
+
 const adapter = new JSONFile(file);
 const db = new Low(adapter);
 
