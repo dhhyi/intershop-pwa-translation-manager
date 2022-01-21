@@ -1,0 +1,7 @@
+{
+  "en": {
+    "simple": "simple key",
+    "html": "<b>html</b> key",
+    "plural": "{{ 0, plural, =true{pluralized} other{PLURALIZED} }} key"
+  }
+}

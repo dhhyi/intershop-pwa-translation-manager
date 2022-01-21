@@ -10,3 +10,4 @@ Dockerfile
 .gitignore
 dist/**
 db.json
+config.json

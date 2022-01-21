@@ -48,6 +48,7 @@ Thumbs.db
 # application
 src/ish-pwa
 db.json
+config.json
 [a-z][a-z].json
 [a-z][a-z].csv
 

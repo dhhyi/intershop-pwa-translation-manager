@@ -24,10 +24,18 @@
     {
       "from": "https://raw.githubusercontent.com/intershop/intershop-pwa/develop/src/app/core/utils/translate/translations.type.ts",
       "to": "src/ish-pwa/translations.type.ts"
+    },
+    {
+      "from": "config-example.json",
+      "to": "config.json"
+    },
+    {
+      "from": "db-example.json",
+      "to": "db.json"
     }
   ],
   "copyFilesSettings": {
-    "whenFileExists": "overwrite"
+    "whenFileExists": "notify-about-available-change"
   },
   "private": true,
   "dependencies": {
