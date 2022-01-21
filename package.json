@@ -2,7 +2,6 @@
   "name": "pwa-translation-manager",
   "version": "0.0.0",
   "scripts": {
-    "postinstall": "copy-files-from-to",
     "ng": "ng",
     "ngcc": "ngcc --first-only",
     "start": "npm-run-all --parallel start:*",
@@ -11,7 +10,7 @@
     "docker": "onchange -i -k '**' -- docker compose up --build",
     "build": "ng build",
     "format": "prettier --write .",
-    "prepare": "husky install",
+    "prepare": "husky install && copy-files-from-to",
     "lint": "ng lint",
     "prebundle": "npm run build",
     "bundle": "webpack"
@@ -27,11 +26,25 @@
     },
     {
       "from": "config-example.json",
-      "to": "config.json"
+      "to": {
+        "default": {
+          "dest": "config.json"
+        },
+        "production": {
+          "skip": true
+        }
+      }
     },
     {
       "from": "db-example.json",
-      "to": "db.json"
+      "to": {
+        "default": {
+          "dest": "db.json"
+        },
+        "production": {
+          "skip": true
+        }
+      }
     }
   ],
   "copyFilesSettings": {

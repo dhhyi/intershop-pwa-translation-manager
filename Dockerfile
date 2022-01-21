@@ -3,10 +3,11 @@ WORKDIR /ws
 COPY package.json package-lock.json /ws/
 RUN npm ci && npm run ngcc
 COPY . /ws
-RUN npm run postinstall
+RUN npx copy-files-from-to --mode production
 RUN npm run bundle
 
 FROM node:lts-alpine
 COPY --from=build /ws/dist /dist
 EXPOSE 8000
+ENV DB_LOCATION=/tmp
 CMD ["node", "/dist/server-bundle.js"]
