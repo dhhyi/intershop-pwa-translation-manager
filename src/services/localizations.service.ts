@@ -50,6 +50,13 @@ export class LocalizationsService {
       .subscribe(() => {
         this.triggerUpdate$.next();
       });
+
+    this.config$
+      .pipe(
+        map((config) => (config.translateAvailable as boolean) || false),
+        distinctUntilChanged()
+      )
+      .subscribe(this.translateAvailable$);
   }
 
   private triggerUpdate$ = new BehaviorSubject<void>(undefined);
@@ -139,6 +146,8 @@ export class LocalizationsService {
     distinctUntilChanged()
   );
 
+  translateAvailable$ = new BehaviorSubject<boolean>(false);
+
   set(lang: string, key: string, value: unknown) {
     this.apiPasswordHeaders$
       .pipe(
@@ -227,11 +236,7 @@ export class LocalizationsService {
       first(),
       switchMap((headers) =>
         this.http
-          .post(
-            "/localizations/translate",
-            { lang, text },
-            { responseType: "text", headers }
-          )
+          .post("/translate", { lang, text }, { responseType: "text", headers })
           .pipe(this.errorHandler())
       )
     );

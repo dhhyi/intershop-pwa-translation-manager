@@ -5,6 +5,7 @@ import { Low, JSONFile } from "lowdb";
 import cors from "cors";
 import * as googleTranslate from "@google-cloud/translate";
 import { parse } from "csv-parse/sync";
+import * as _ from "lodash";
 
 function BlockList() {
   const list = [];
@@ -141,8 +142,22 @@ app.post("/localizations", async (req, res) => {
   }
 });
 
+const getConfig = () => {
+  return {
+    ...(db.data.config || {}),
+    translateAvailable: !!process.env.GOOGLE_API_KEY,
+  };
+};
+
+const setConfigValue = async (key, value) => {
+  const config = getConfig();
+  config[key] = value;
+  db.data.config = _.omit(config, "translateAvailable");
+  await db.write();
+};
+
 app.get("/localizations/config", (_, res) => {
-  return res.send(db.data.config || {});
+  return res.send(getConfig());
 });
 
 app.get("/localizations/config/block", (req, res) => {
@@ -160,14 +175,11 @@ app.delete("/localizations/config/block", (req, res) => {
 });
 
 app.get("/localizations/config/:key", (req, res) => {
-  const data = db.data.config?.[req.params.key];
+  const data = getConfig()[req.params.key];
   return res.send(data);
 });
 
 app.post("/localizations/config/:key", async (req, res) => {
-  if (!db.data.config) {
-    db.data.config = {};
-  }
   let value = req.body;
   if (typeof value === "string") {
     if ("true" === value?.toLowerCase()) {
@@ -176,45 +188,8 @@ app.post("/localizations/config/:key", async (req, res) => {
       value = false;
     }
   }
-  db.data.config[req.params.key] = value;
-  await db.write();
+  await setConfigValue(req.params.key, value);
   return res.sendStatus(204);
-});
-
-app.delete("/localizations/config/:key", async (req, res) => {
-  if (!db.data.config) {
-    db.data.config = {};
-  }
-  if (db.data.config[req.params.key]) {
-    delete db.data.config[req.params.key];
-  }
-  await db.write();
-  return res.sendStatus(204);
-});
-
-app.post("/localizations/translate", async (req, res) => {
-  const googleAPIKey = process.env.GOOGLE_API_KEY;
-
-  if (!googleAPIKey) {
-    return res.status(400).send("No Google translate API key is set.");
-  }
-
-  if (assertFormat(req, "application/json", res)) {
-    console.log(req.body);
-    const tr = new googleTranslate.v2.Translate({
-      key: googleAPIKey,
-    });
-    try {
-      const translation = await tr.translate(
-        req.body.text,
-        req.body.lang.replace(/_.*$/, "")
-      );
-      return res.send(translation?.[0]);
-    } catch (err) {
-      console.error(err);
-      return res.status(400).send(err.message);
-    }
-  }
 });
 
 app.post("/localizations/import/:locale", async (req, res) => {
@@ -318,6 +293,34 @@ app.delete("/localizations/:locale/:key", async (req, res) => {
 });
 
 // </DB>
+
+// <TRANSLATE>
+
+app.post("/translate", async (req, res) => {
+  const googleAPIKey = process.env.GOOGLE_API_KEY;
+
+  if (!googleAPIKey) {
+    return res.status(400).send("No Google translate API key is set.");
+  }
+
+  if (assertFormat(req, "application/json", res)) {
+    const tr = new googleTranslate.v2.Translate({
+      key: googleAPIKey,
+    });
+    try {
+      const translation = await tr.translate(
+        req.body.text,
+        req.body.lang.replace(/_.*$/, "")
+      );
+      return res.send(translation?.[0]);
+    } catch (err) {
+      console.error(err);
+      return res.status(400).send(err.message);
+    }
+  }
+});
+
+// </TRANSLATE>
 
 app.use((_, res) => {
   return res.sendStatus(404);

@@ -387,7 +387,9 @@ export class AppComponent implements AfterViewInit {
       {
         data: {
           element,
-          google: this.service.translate(this.lang.value, element.base),
+          google:
+            this.service.translateAvailable$.value &&
+            this.service.translate(this.lang.value, element.base),
         },
       }
     );

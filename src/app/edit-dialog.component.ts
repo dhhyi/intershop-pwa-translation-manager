@@ -55,7 +55,7 @@ import { LocalizationWithBaseType } from "../services/localizations.service";
         </div>
       </ng-container>
       <button
-        *ngIf="!parameters.controls?.length"
+        *ngIf="data.google && !parameters.controls?.length"
         mat-raised-button
         (click)="applyGoogleTranslate()"
       >
@@ -127,12 +127,12 @@ export class EditDialogComponent implements OnDestroy {
   private destroy$ = new Subject();
 
   constructor(
-    private fb: FormBuilder,
     @Inject(MAT_DIALOG_DATA)
-    private data: {
+    public data: {
       element: LocalizationWithBaseType;
       google: Observable<string>;
     },
+    private fb: FormBuilder,
     private compiler: TranslateCompiler,
     private parser: TranslateParser,
     sanitizer: DomSanitizer
