@@ -66,6 +66,9 @@ const localizations = await init(BackEnd("db.json"));
 Object.entries(localizations.data).forEach(([lang, translations]) => {
   console.log("loaded", lang, "-", Object.keys(translations).length, "keys");
 });
+if (!Object.entries(localizations.data).length) {
+  console.log("no data available");
+}
 
 const config = await init(BackEnd("config.json"));
 
