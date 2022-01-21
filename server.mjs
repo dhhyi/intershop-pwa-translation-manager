@@ -302,6 +302,14 @@ app.get("/config", (_, res) => {
   return res.send(getConfig());
 });
 
+app.post("/config", async (req, res) => {
+  if (assertFormat(req, "application/json", res)) {
+    config.data = req.body;
+    await config.write();
+    return res.sendStatus(204);
+  }
+});
+
 app.get("/config/block", (req, res) => {
   return res.send(blockList.includes(req.ip));
 });
