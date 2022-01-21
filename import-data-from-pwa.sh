@@ -19,7 +19,7 @@ TO="${2:-http://localhost:8000}"
 # curl -f -X POST -H "Content-Type: application/json" $auth -d '@en.json' $TO/localizations/en
 # rm en.json
 
-for l in $(curl $auth $TO/localizations/config/languages | tr '[],"' ' ')
+for l in $(curl $auth $TO/config/languages | tr '[],"' ' ')
 do
     wget -q -O $l.json "$1/assets/i18n/$l.json"
     curl -f -X POST -H "Content-Type: application/json" $auth -d "@$l.json" $TO/localizations/$l

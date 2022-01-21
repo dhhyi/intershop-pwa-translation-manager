@@ -130,7 +130,7 @@ export class LocalizationsService {
   ]).pipe(
     switchMap(([, headers]) =>
       this.http
-        .get<Record<string, unknown>>(`/localizations/config`, { headers })
+        .get<Record<string, unknown>>(`/config`, { headers })
         .pipe(this.errorHandler())
     ),
     shareReplay(1)
@@ -193,7 +193,7 @@ export class LocalizationsService {
   blockedAPI$ = combineLatest([timer(0, 5000), this.apiPasswordHeaders$]).pipe(
     switchMap(([, headers]) =>
       this.http
-        .get<boolean>(`/localizations/config/block`, { headers })
+        .get<boolean>(`/config/block`, { headers })
         .pipe(this.errorHandler())
     )
   );
@@ -201,11 +201,9 @@ export class LocalizationsService {
   blockAPI(checked: boolean) {
     let method: (headers: any) => Observable<unknown>;
     if (checked) {
-      method = (headers) =>
-        this.http.put(`/localizations/config/block`, {}, { headers });
+      method = (headers) => this.http.put(`/config/block`, {}, { headers });
     } else {
-      method = (headers) =>
-        this.http.delete(`/localizations/config/block`, { headers });
+      method = (headers) => this.http.delete(`/config/block`, { headers });
     }
     this.apiPasswordHeaders$
       .pipe(

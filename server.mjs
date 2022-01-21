@@ -280,30 +280,30 @@ const setConfigValue = async (key, value) => {
   await config.write();
 };
 
-app.get("/localizations/config", (_, res) => {
+app.get("/config", (_, res) => {
   return res.send(getConfig());
 });
 
-app.get("/localizations/config/block", (req, res) => {
+app.get("/config/block", (req, res) => {
   return res.send(blockList.includes(req.ip));
 });
 
-app.put("/localizations/config/block", (req, res) => {
+app.put("/config/block", (req, res) => {
   blockList.add(req.ip);
   return res.sendStatus(204);
 });
 
-app.delete("/localizations/config/block", (req, res) => {
+app.delete("/config/block", (req, res) => {
   blockList.remove(req.ip);
   return res.sendStatus(204);
 });
 
-app.get("/localizations/config/:key", (req, res) => {
+app.get("/config/:key", (req, res) => {
   const data = getConfig()[req.params.key];
   return res.send(data);
 });
 
-app.post("/localizations/config/:key", async (req, res) => {
+app.post("/config/:key", async (req, res) => {
   let value = req.body;
   if (typeof value === "string") {
     if ("true" === value?.toLowerCase()) {

@@ -9,4 +9,4 @@ fi
 
 TO="${1:-http://localhost:8000}"
 
-curl -f -X POST -H "Content-Type: application/json" $auth -d '@config.json' $TO/localizations/config
+curl -f -X POST -H "Content-Type: application/json" $auth -d '@config.json' $TO/config
