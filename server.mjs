@@ -7,6 +7,8 @@ import * as googleTranslate from "@google-cloud/translate";
 import { parse } from "csv-parse/sync";
 import * as _ from "lodash";
 
+// <INIT>
+
 function BlockList() {
   const list = [];
   const timeoutMap = {};
@@ -65,7 +67,27 @@ Object.entries(localizations.data).forEach(([lang, translations]) => {
   console.log("loaded", lang, "-", Object.keys(translations).length, "keys");
 });
 
+const config = await init(BackEnd("config.json"));
+
+const getConfig = () => {
+  return {
+    ...(config.data || {}),
+    translateAvailable: !!process.env.GOOGLE_API_KEY,
+  };
+};
+
+console.log("loaded config", getConfig());
+
+const setConfigValue = async (key, value) => {
+  const config = getConfig();
+  config[key] = value;
+  config.data = _.omit(config, "translateAvailable");
+  await config.write();
+};
+
 const app = express();
+
+// </INIT>
 
 // <ANGULAR>
 
@@ -114,6 +136,17 @@ app.get("/localizations/:locale/:key", (req, res, next) => {
     }
     return res.sendStatus(404);
   }
+});
+
+app.get("/list", (req, res) => {
+  const languages = getConfig()?.languages || [];
+  const languagesWithURL = languages.map((lang) => ({
+    lang,
+    url: `${req.protocol}://${req.get(
+      "host"
+    )}/localizations/${lang}?exact=true`,
+  }));
+  return res.send(languagesWithURL);
 });
 
 // </OPEN-DB>
@@ -261,24 +294,6 @@ app.delete("/localizations/:locale/:key", async (req, res) => {
 // </DB>
 
 // <CONFIG>
-
-const config = await init(BackEnd("config.json"));
-
-const getConfig = () => {
-  return {
-    ...(config.data || {}),
-    translateAvailable: !!process.env.GOOGLE_API_KEY,
-  };
-};
-
-console.log("loaded config", getConfig());
-
-const setConfigValue = async (key, value) => {
-  const config = getConfig();
-  config[key] = value;
-  config.data = _.omit(config, "translateAvailable");
-  await config.write();
-};
 
 app.get("/config", (_, res) => {
   return res.send(getConfig());
