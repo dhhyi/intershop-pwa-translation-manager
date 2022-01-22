@@ -2,7 +2,7 @@ module.exports = {
   "*": [
     () => "ng lint --fix",
     "prettier --write",
-    () => "ng build",
+    () => "npm run build",
     () => "npm test",
   ],
 };
