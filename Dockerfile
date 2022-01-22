@@ -1,14 +1,14 @@
 FROM node:14-alpine as npm
 WORKDIR /ws
 COPY package.json package-lock.json /ws/
-RUN npm ci --ignore-scripts
+RUN npm i --ignore-scripts --production
 
 FROM npm as fe
 RUN find node_modules -path '*/esbuild/install.js' | xargs -rt -n 1 node
 RUN npm run ngcc
 COPY src /ws/src
 COPY angular.json .browserslistrc tsconfig.json tsconfig.app.json /ws/
-RUN npx copy-files-from-to --mode production
+RUN npm run copy-files -- --mode production
 RUN npm run build:fe
 
 FROM npm as be
