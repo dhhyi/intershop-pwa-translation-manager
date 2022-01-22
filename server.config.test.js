@@ -1,13 +1,15 @@
 const axios = require("axios");
 const _ = require("lodash");
 
+axios.defaults.baseURL = "http://localhost:" + (process.env.PORT || "8001");
+
 describe("Server Config", () => {
   beforeAll(async () => {
-    await axios.post("http://localhost:8000/config", {});
+    await axios.post("/config", {});
   });
 
   it("should start up", async () => {
-    const res = await axios.get("http://localhost:8000/config");
+    const res = await axios.get("/config");
     expect(res.status).toEqual(200);
     expect(res.data).toMatchInlineSnapshot(`
       Object {
@@ -19,7 +21,7 @@ describe("Server Config", () => {
 
   describe("when pushing a whole config", () => {
     it("should respond with 204", async () => {
-      const res = await axios.post("http://localhost:8000/config", {
+      const res = await axios.post("/config", {
         foo: "test",
         bar: "foobar",
       });
@@ -28,7 +30,7 @@ describe("Server Config", () => {
     });
 
     it("should have the new data set in config response", async () => {
-      const res = await axios.get("http://localhost:8000/config");
+      const res = await axios.get("/config");
       expect(res.status).toEqual(200);
       expect(_.pick(res.data, "foo", "bar")).toMatchInlineSnapshot(`
         Object {
@@ -39,7 +41,7 @@ describe("Server Config", () => {
     });
 
     it("should have the new data set in config detail response", async () => {
-      const res = await axios.get("http://localhost:8000/config/foo");
+      const res = await axios.get("/config/foo");
       expect(res.status).toEqual(200);
       expect(res.data).toEqual("test");
     });
@@ -47,43 +49,41 @@ describe("Server Config", () => {
 
   describe("when setting a string config field", () => {
     it("should respond with 204", async () => {
-      const res = await axios.put(
-        "http://localhost:8000/config/dummy",
-        "test",
-        { headers: { "Content-Type": "text/plain" } }
-      );
+      const res = await axios.put("/config/dummy", "test", {
+        headers: { "Content-Type": "text/plain" },
+      });
       expect(res.status).toEqual(204);
       expect(res.data).toBeEmpty();
     });
 
     it("should have the new data set in config detail response", async () => {
-      const res = await axios.get("http://localhost:8000/config/dummy");
+      const res = await axios.get("/config/dummy");
       expect(res.status).toEqual(200);
       expect(res.data).toEqual("test");
     });
 
     it("should have the new data set in config response", async () => {
-      const res = await axios.get("http://localhost:8000/config");
+      const res = await axios.get("/config");
       expect(res.status).toEqual(200);
       expect(res.data.dummy).toEqual("test");
     });
 
     describe("when deleting the field", () => {
       it("should respond with 204", async () => {
-        const res = await axios.delete("http://localhost:8000/config/dummy");
+        const res = await axios.delete("/config/dummy");
         expect(res.status).toEqual(204);
         expect(res.data).toBeEmpty();
       });
 
       it("should not have the data set in config detail response", async () => {
         const res = await axios
-          .get("http://localhost:8000/config/dummy")
+          .get("/config/dummy")
           .catch((err) => err.response);
         expect(res.status).toEqual(404);
       });
 
       it("should not have the data set in config response", async () => {
-        const res = await axios.get("http://localhost:8000/config");
+        const res = await axios.get("/config");
         expect(res.status).toEqual(200);
         expect(res.data.dummy).toBeUndefined();
       });
@@ -92,43 +92,41 @@ describe("Server Config", () => {
 
   describe("when setting a boolean config field", () => {
     it("should respond with 204", async () => {
-      const res = await axios.put(
-        "http://localhost:8000/config/dummy",
-        "true",
-        { headers: { "Content-Type": "text/plain" } }
-      );
+      const res = await axios.put("/config/dummy", "true", {
+        headers: { "Content-Type": "text/plain" },
+      });
       expect(res.status).toEqual(204);
       expect(res.data).toBeEmpty();
     });
 
     it("should have the new data set in config detail response", async () => {
-      const res = await axios.get("http://localhost:8000/config/dummy");
+      const res = await axios.get("/config/dummy");
       expect(res.status).toEqual(200);
       expect(res.data).toBeTrue();
     });
 
     it("should have the new data set in config response", async () => {
-      const res = await axios.get("http://localhost:8000/config");
+      const res = await axios.get("/config");
       expect(res.status).toEqual(200);
       expect(res.data.dummy).toBeTrue();
     });
 
     describe("when deleting the field", () => {
       it("should respond with 204", async () => {
-        const res = await axios.delete("http://localhost:8000/config/dummy");
+        const res = await axios.delete("/config/dummy");
         expect(res.status).toEqual(204);
         expect(res.data).toBeEmpty();
       });
 
       it("should not have the data set in config detail response", async () => {
         const res = await axios
-          .get("http://localhost:8000/config/dummy")
+          .get("/config/dummy")
           .catch((err) => err.response);
         expect(res.status).toEqual(404);
       });
 
       it("should not have the data set in config response", async () => {
-        const res = await axios.get("http://localhost:8000/config");
+        const res = await axios.get("/config");
         expect(res.status).toEqual(200);
         expect(res.data.dummy).toBeUndefined();
       });
@@ -137,16 +135,13 @@ describe("Server Config", () => {
 
   describe("when setting an object config field", () => {
     it("should respond with 204", async () => {
-      const res = await axios.put("http://localhost:8000/config/dummy", [
-        "foo",
-        "bar",
-      ]);
+      const res = await axios.put("/config/dummy", ["foo", "bar"]);
       expect(res.status).toEqual(204);
       expect(res.data).toBeEmpty();
     });
 
     it("should have the new data set in config detail response", async () => {
-      const res = await axios.get("http://localhost:8000/config/dummy");
+      const res = await axios.get("/config/dummy");
       expect(res.status).toEqual(200);
       expect(res.data).toMatchInlineSnapshot(`
         Array [
@@ -157,7 +152,7 @@ describe("Server Config", () => {
     });
 
     it("should have the new data set in config response", async () => {
-      const res = await axios.get("http://localhost:8000/config");
+      const res = await axios.get("/config");
       expect(res.status).toEqual(200);
       expect(res.data.dummy).toMatchInlineSnapshot(`
         Array [
@@ -169,20 +164,20 @@ describe("Server Config", () => {
 
     describe("when deleting the field", () => {
       it("should respond with 204", async () => {
-        const res = await axios.delete("http://localhost:8000/config/dummy");
+        const res = await axios.delete("/config/dummy");
         expect(res.status).toEqual(204);
         expect(res.data).toBeEmpty();
       });
 
       it("should not have the data set in config detail response", async () => {
         const res = await axios
-          .get("http://localhost:8000/config/dummy")
+          .get("/config/dummy")
           .catch((err) => err.response);
         expect(res.status).toEqual(404);
       });
 
       it("should not have the data set in config response", async () => {
-        const res = await axios.get("http://localhost:8000/config");
+        const res = await axios.get("/config");
         expect(res.status).toEqual(200);
         expect(res.data.dummy).toBeUndefined();
       });
@@ -191,38 +186,38 @@ describe("Server Config", () => {
 
   describe("when setting the block config field", () => {
     it("should respond with 204", async () => {
-      const res = await axios.put("http://localhost:8000/config/block");
+      const res = await axios.put("/config/block");
       expect(res.status).toEqual(204);
       expect(res.data).toBeEmpty();
     });
 
     it("should have the new data set in config detail response", async () => {
-      const res = await axios.get("http://localhost:8000/config/block");
+      const res = await axios.get("/config/block");
       expect(res.status).toEqual(200);
       expect(res.data).toBeTrue();
     });
 
     it("should have the new data set in config response", async () => {
-      const res = await axios.get("http://localhost:8000/config");
+      const res = await axios.get("/config");
       expect(res.status).toEqual(200);
       expect(res.data.block).toBeTrue();
     });
 
     describe("when deleting the field", () => {
       it("should respond with 204", async () => {
-        const res = await axios.delete("http://localhost:8000/config/block");
+        const res = await axios.delete("/config/block");
         expect(res.status).toEqual(204);
         expect(res.data).toBeEmpty();
       });
 
       it("should be false in the config detail response", async () => {
-        const res = await axios.get("http://localhost:8000/config/block");
+        const res = await axios.get("/config/block");
         expect(res.status).toEqual(200);
         expect(res.data).toBeFalse();
       });
 
       it("should not have the data set in config response", async () => {
-        const res = await axios.get("http://localhost:8000/config");
+        const res = await axios.get("/config");
         expect(res.status).toEqual(200);
         expect(res.data.block).toBeFalse();
       });
@@ -232,7 +227,7 @@ describe("Server Config", () => {
   describe("when setting a readonly config field", () => {
     it("should respond with 405", async () => {
       const res = await axios
-        .put("http://localhost:8000/config/translateAvailable")
+        .put("/config/translateAvailable")
         .catch((err) => err.response);
       expect(res.status).toEqual(405);
     });
@@ -241,7 +236,7 @@ describe("Server Config", () => {
   describe("when deleting a readonly config field", () => {
     it("should respond with 405", async () => {
       const res = await axios
-        .delete("http://localhost:8000/config/translateAvailable")
+        .delete("/config/translateAvailable")
         .catch((err) => err.response);
       expect(res.status).toEqual(405);
     });

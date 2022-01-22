@@ -1,13 +1,17 @@
 import express from "express";
 import { join } from "path";
 import { mkdirSync, existsSync } from "fs";
-import { Low, JSONFile } from "lowdb";
+import { Low, JSONFile, Memory } from "lowdb";
 import cors from "cors";
 import * as googleTranslate from "@google-cloud/translate";
 import { parse } from "csv-parse/sync";
 import _ from "lodash";
 
 // <INIT>
+
+if (process.env.SILENT === "true") {
+  console.log = () => {};
+}
 
 function BlockList() {
   const list = [];
@@ -43,17 +47,25 @@ function BlockList() {
 
 const blockList = BlockList();
 
-function BackEnd(dbFileName) {
-  const folder = process.env.DB_LOCATION || process.cwd();
-  if (!existsSync(folder)) {
-    mkdirSync(folder, { recursive: true });
+const folder = process.env.DB_LOCATION;
+console.log("storage location:", folder);
+
+function BackEnd(dbName) {
+  let adapter;
+
+  if (folder) {
+    if (!existsSync(folder)) {
+      mkdirSync(folder, { recursive: true });
+    }
+
+    const file = join(folder, dbName + ".json");
+
+    console.log("using json file storage for", dbName);
+    adapter = new JSONFile(file);
+  } else {
+    console.log("using memory storage for", dbName);
+    adapter = new Memory();
   }
-
-  const file = join(folder, dbFileName);
-
-  console.log("storage location:", file);
-
-  const adapter = new JSONFile(file);
   const db = new Low(adapter);
 
   return db;
@@ -66,16 +78,22 @@ async function init(db) {
   return db;
 }
 
-const localizations = await init(BackEnd("db.json"));
+const localizations = await init(BackEnd("db"));
 
 Object.entries(localizations.data).forEach(([lang, translations]) => {
-  console.log("loaded", lang, "-", Object.keys(translations).length, "keys");
+  console.log(
+    "loaded localization",
+    lang,
+    "-",
+    Object.keys(translations).length,
+    "keys"
+  );
 });
 if (!Object.entries(localizations.data).length) {
-  console.log("no data available");
+  console.log("no localization data available");
 }
 
-const config = await init(BackEnd("config.json"));
+const config = await init(BackEnd("config"));
 
 const getConfig = (req) => {
   const data = config.data || {};
@@ -397,6 +415,6 @@ app.use((_, res) => {
   return res.sendStatus(404);
 });
 
-app.listen(8000, () => {
+app.listen(+process.env.PORT || 8000, () => {
   console.log("PWA translation manager listening");
 });

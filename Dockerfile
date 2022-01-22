@@ -19,5 +19,4 @@ FROM node:14-alpine as final
 COPY --from=be /ws/dist /dist
 COPY --from=fe /ws/dist /dist
 EXPOSE 8000
-ENV DB_LOCATION=/tmp
 CMD ["node", "/dist/server-bundle.js"]
