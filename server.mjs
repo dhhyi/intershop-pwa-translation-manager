@@ -1,11 +1,11 @@
 import express from "express";
 import { join } from "path";
-import { existsSync } from "fs";
+import { mkdirSync, existsSync } from "fs";
 import { Low, JSONFile } from "lowdb";
 import cors from "cors";
 import * as googleTranslate from "@google-cloud/translate";
 import { parse } from "csv-parse/sync";
-import * as _ from "lodash";
+import _ from "lodash";
 
 // <INIT>
 
@@ -44,7 +44,12 @@ function BlockList() {
 const blockList = BlockList();
 
 function BackEnd(dbFileName) {
-  const file = join(process.env.DB_LOCATION || process.cwd(), dbFileName);
+  const folder = process.env.DB_LOCATION || process.cwd();
+  if (!existsSync(folder)) {
+    mkdirSync(folder, { recursive: true });
+  }
+
+  const file = join(folder, dbFileName);
 
   console.log("storage location:", file);
 
@@ -72,20 +77,28 @@ if (!Object.entries(localizations.data).length) {
 
 const config = await init(BackEnd("config.json"));
 
-const getConfig = () => {
-  return {
-    ...(config.data || {}),
-    translateAvailable: !!process.env.GOOGLE_API_KEY,
-  };
+const getConfig = (req) => {
+  const data = config.data || {};
+  data.translateAvailable = !!process.env.GOOGLE_API_KEY;
+  if (req) {
+    data.block = blockList.includes(req.ip);
+  }
+  return data;
 };
 
-console.log("loaded config", getConfig());
+function logConfig() {
+  console.log("new config", JSON.stringify(getConfig(), undefined, ""));
+}
+logConfig();
+
+const configReadOnlyFields = ["translateAvailable"];
 
 const setConfigValue = async (key, value) => {
-  const config = getConfig();
-  config[key] = value;
-  config.data = _.omit(config, "translateAvailable");
+  const configData = getConfig();
+  configData[key] = value;
+  config.data = _.omit(configData, "translateAvailable");
   await config.write();
+  logConfig();
 };
 
 const app = express();
@@ -298,38 +311,28 @@ app.delete("/localizations/:locale/:key", async (req, res) => {
 
 // <CONFIG>
 
-app.get("/config", (_, res) => {
-  return res.send(getConfig());
+app.get("/config", (req, res) => {
+  return res.send(getConfig(req));
 });
 
 app.post("/config", async (req, res) => {
   if (assertFormat(req, "application/json", res)) {
     config.data = req.body;
     await config.write();
+    logConfig();
     return res.sendStatus(204);
   }
 });
 
-app.get("/config/block", (req, res) => {
-  return res.send(blockList.includes(req.ip));
-});
-
-app.put("/config/block", (req, res) => {
-  blockList.add(req.ip);
-  return res.sendStatus(204);
-});
-
-app.delete("/config/block", (req, res) => {
-  blockList.remove(req.ip);
-  return res.sendStatus(204);
-});
-
 app.get("/config/:key", (req, res) => {
-  const data = getConfig()[req.params.key];
+  const data = getConfig(req)[req.params.key];
+  if (data === undefined) {
+    return res.sendStatus(404);
+  }
   return res.send(data);
 });
 
-app.post("/config/:key", async (req, res) => {
+app.put("/config/:key", async (req, res) => {
   let value = req.body;
   if (typeof value === "string") {
     if ("true" === value?.toLowerCase()) {
@@ -338,7 +341,25 @@ app.post("/config/:key", async (req, res) => {
       value = false;
     }
   }
-  await setConfigValue(req.params.key, value);
+
+  if (req.params.key === "block") {
+    blockList.add(req.ip);
+  } else if (configReadOnlyFields.includes(req.params.key)) {
+    return res.sendStatus(405);
+  } else {
+    await setConfigValue(req.params.key, value);
+  }
+  return res.sendStatus(204);
+});
+
+app.delete("/config/:key", async (req, res) => {
+  if (req.params.key === "block") {
+    blockList.remove(req.ip);
+  } else if (configReadOnlyFields.includes(req.params.key)) {
+    return res.sendStatus(405);
+  } else {
+    await setConfigValue(req.params.key, undefined);
+  }
   return res.sendStatus(204);
 });
 
