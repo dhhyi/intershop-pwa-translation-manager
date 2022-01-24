@@ -2,12 +2,15 @@ const axios = require("axios");
 
 axios.defaults.baseURL = "http://localhost:" + (process.env.PORT || "8001");
 
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => Promise.resolve(error.response)
+);
+
 describe("Server Import", () => {
   describe("expected errors", () => {
     it("should respond with 400 if locale query param is missing", async () => {
-      const res = await axios
-        .post("/import?type=replace", { foo: "test" })
-        .catch((err) => err.response);
+      const res = await axios.post("/import?type=replace", { foo: "test" });
       expect(res.status).toEqual(400);
       expect(res.data).toMatchInlineSnapshot(
         `"Query parameter 'locale' is required."`
@@ -15,9 +18,7 @@ describe("Server Import", () => {
     });
 
     it("should respond with 400 if type query param is missing", async () => {
-      const res = await axios
-        .post("/import?locale=de", { foo: "test" })
-        .catch((err) => err.response);
+      const res = await axios.post("/import?locale=de", { foo: "test" });
       expect(res.status).toEqual(400);
       expect(res.data).toMatchInlineSnapshot(
         `"Query parameter 'type' is required. Options: replace, overwrite, add, delete"`
@@ -25,9 +26,7 @@ describe("Server Import", () => {
     });
 
     it("should respond with 400 if there aren't any keys in the payload", async () => {
-      const res = await axios
-        .post("/import?locale=de&type=add", {})
-        .catch((err) => err.response);
+      const res = await axios.post("/import?locale=de&type=add", {});
       expect(res.status).toEqual(400);
       expect(res.data).toMatchInlineSnapshot(
         `"Could not parse any data in the CSV or JSON content"`
@@ -35,9 +34,9 @@ describe("Server Import", () => {
     });
 
     it("should respond with 400 if type is 'delete' and it has a payload", async () => {
-      const res = await axios
-        .post("/import?locale=de&type=delete", { foo: "bar" })
-        .catch((err) => err.response);
+      const res = await axios.post("/import?locale=de&type=delete", {
+        foo: "bar",
+      });
       expect(res.status).toEqual(400);
       expect(res.data).toMatchInlineSnapshot(
         `"Did not expect a request body."`
@@ -117,16 +116,14 @@ describe("Server Import", () => {
 
   describe("when using textual JSON for the import", () => {
     it("should respond with 200", async () => {
-      const res = await axios
-        .post(
-          "/import?locale=de&type=replace",
-          JSON.stringify({
-            foo: "json",
-            bar: "json",
-          }),
-          { headers: { "content-type": "text/plain" } }
-        )
-        .catch((err) => err.response);
+      const res = await axios.post(
+        "/import?locale=de&type=replace",
+        JSON.stringify({
+          foo: "json",
+          bar: "json",
+        }),
+        { headers: { "content-type": "text/plain" } }
+      );
       expect(res.status).toEqual(200);
       expect(res.data).toMatchInlineSnapshot(`"Imported 2 keys."`);
     });
@@ -145,15 +142,13 @@ describe("Server Import", () => {
 
   describe("when using textual CSV for the import", () => {
     it("should respond with 200", async () => {
-      const res = await axios
-        .post(
-          "/import?locale=de&type=replace",
-          `foo;;csv
+      const res = await axios.post(
+        "/import?locale=de&type=replace",
+        `foo;;csv
 bar;;csv
 `,
-          { headers: { "content-type": "text/plain" } }
-        )
-        .catch((err) => err.response);
+        { headers: { "content-type": "text/plain" } }
+      );
       expect(res.status).toEqual(200);
       expect(res.data).toMatchInlineSnapshot(`"Imported 2 keys."`);
     });
@@ -172,11 +167,9 @@ bar;;csv
 
   describe("when importing a language with delete", () => {
     it("should respond with 200", async () => {
-      const res = await axios
-        .post("/import?locale=de&type=delete", undefined, {
-          headers: { "content-type": "application/json" },
-        })
-        .catch((err) => err.response);
+      const res = await axios.post("/import?locale=de&type=delete", undefined, {
+        headers: { "content-type": "application/json" },
+      });
       expect(res.status).toEqual(200);
       expect(res.data).toMatchInlineSnapshot(`"Deleted all keys."`);
     });

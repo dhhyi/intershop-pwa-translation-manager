@@ -3,6 +3,11 @@ const _ = require("lodash");
 
 axios.defaults.baseURL = "http://localhost:" + (process.env.PORT || "8001");
 
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => Promise.resolve(error.response)
+);
+
 describe("Server Config", () => {
   beforeAll(async () => {
     await axios.post("/config", {});
@@ -76,9 +81,7 @@ describe("Server Config", () => {
       });
 
       it("should not have the data set in config detail response", async () => {
-        const res = await axios
-          .get("/config/dummy")
-          .catch((err) => err.response);
+        const res = await axios.get("/config/dummy");
         expect(res.status).toEqual(404);
       });
 
@@ -119,9 +122,7 @@ describe("Server Config", () => {
       });
 
       it("should not have the data set in config detail response", async () => {
-        const res = await axios
-          .get("/config/dummy")
-          .catch((err) => err.response);
+        const res = await axios.get("/config/dummy");
         expect(res.status).toEqual(404);
       });
 
@@ -170,9 +171,7 @@ describe("Server Config", () => {
       });
 
       it("should not have the data set in config detail response", async () => {
-        const res = await axios
-          .get("/config/dummy")
-          .catch((err) => err.response);
+        const res = await axios.get("/config/dummy");
         expect(res.status).toEqual(404);
       });
 
@@ -226,18 +225,14 @@ describe("Server Config", () => {
 
   describe("when setting a readonly config field", () => {
     it("should respond with 405", async () => {
-      const res = await axios
-        .put("/config/translateAvailable")
-        .catch((err) => err.response);
+      const res = await axios.put("/config/translateAvailable");
       expect(res.status).toEqual(405);
     });
   });
 
   describe("when deleting a readonly config field", () => {
     it("should respond with 405", async () => {
-      const res = await axios
-        .delete("/config/translateAvailable")
-        .catch((err) => err.response);
+      const res = await axios.delete("/config/translateAvailable");
       expect(res.status).toEqual(405);
     });
   });
