@@ -166,7 +166,7 @@ app.get("/localizations/:locale/:key", (req, res, next) => {
   } else {
     const data = localizations.data[req.params.locale]?.[req.params.key];
     if (data) {
-      return res.send(data);
+      return res.set("content-type", "text/plain").send(data);
     }
     return res.sendStatus(404);
   }
@@ -213,7 +213,7 @@ function assertFormat(req, res, ...formats) {
 
 // <DB>
 
-app.post("/localizations/:locale/:key", async (req, res) => {
+app.put("/localizations/:locale/:key", async (req, res) => {
   if (assertFormat(req, res, "text/plain")) {
     if (!localizations.data[req.params.locale]) {
       localizations.data[req.params.locale] = {};

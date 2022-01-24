@@ -154,7 +154,7 @@ export class LocalizationsService {
         first(),
         switchMap((headers) =>
           this.http
-            .post(`/localizations/${lang}/${key}`, value, {
+            .put(`/localizations/${lang}/${key}`, value, {
               headers: new HttpHeaders(headers).set(
                 "Content-Type",
                 "text/plain"
