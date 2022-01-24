@@ -187,8 +187,8 @@ app.get("/list", (req, res) => {
 
 const API_PASSWORD = process.env.API_PASSWORD;
 
-app.use(express.json({ limit: "50mb", extended: true }));
-app.use(express.text());
+app.use(express.json({ limit: "10mb", extended: true }));
+app.use(express.text({ limit: "10mb", extended: true }));
 
 app.use((req, res, next) => {
   if (API_PASSWORD && req.get("Authorization") !== API_PASSWORD) {
@@ -197,9 +197,15 @@ app.use((req, res, next) => {
   next();
 });
 
-function assertFormat(req, format, res) {
-  if (req.get("Content-Type") !== format) {
-    res.status(400).send(`Only Content-Type "${format}" is allowed here!`);
+function assertFormat(req, res, ...formats) {
+  if (!formats.some((format) => req.get("Content-Type") === format)) {
+    res
+      .status(400)
+      .send(
+        `Only Content-Type ${formats
+          .map((x) => `"${x}"`)
+          .join()} is allowed here! Received "${req.get("Content-Type")}"`
+      );
     return false;
   }
   return true;
@@ -208,7 +214,7 @@ function assertFormat(req, format, res) {
 // <DB>
 
 app.post("/localizations/:locale/:key", async (req, res) => {
-  if (assertFormat(req, "text/plain", res)) {
+  if (assertFormat(req, res, "text/plain")) {
     if (!localizations.data[req.params.locale]) {
       localizations.data[req.params.locale] = {};
     }
@@ -234,7 +240,7 @@ app.delete("/localizations/:locale/:key", async (req, res) => {
 // <IMPORT>
 
 app.post("/import", async (req, res) => {
-  if (assertFormat(req, "text/plain", res)) {
+  if (assertFormat(req, res, "text/plain", "application/json")) {
     const locale = req.query.locale;
     if (!locale) {
       return res.status(400).send("Query parameter 'locale' is required.");
@@ -261,7 +267,9 @@ app.post("/import", async (req, res) => {
 
     let data;
 
-    if (type !== "delete") {
+    if (typeof req.body === "object") {
+      data = req.body;
+    } else if (type !== "delete") {
       try {
         data = JSON.parse(req.body);
       } catch (e1) {
@@ -280,20 +288,20 @@ app.post("/import", async (req, res) => {
           return res.status(400).send("Could not parse CSV or JSON content");
         }
       }
+    }
 
-      if (!Object.keys(data).length) {
-        return res
-          .status(400)
-          .send("Could not parse any data in the CSV or JSON content");
-      }
+    if (type === "delete" && data && Object.keys(data).length) {
+      return res.status(400).send("Did not expect a request body.");
+    }
 
-      if (!localizations.data[locale]) {
-        localizations.data[locale] = {};
-      }
-    } else {
-      if (req.body) {
-        return res.status(400).send("Did not expect a request body.");
-      }
+    if (type !== "delete" && !Object.keys(data).length) {
+      return res
+        .status(400)
+        .send("Could not parse any data in the CSV or JSON content");
+    }
+
+    if (!localizations.data[locale]) {
+      localizations.data[locale] = {};
     }
 
     console.log("importing", req.query.locale, "with strategy", req.query.type);
@@ -339,7 +347,7 @@ app.get("/config", (req, res) => {
 });
 
 app.post("/config", async (req, res) => {
-  if (assertFormat(req, "application/json", res)) {
+  if (assertFormat(req, res, "application/json")) {
     config.data = req.body;
     await config.write();
     logConfig();
@@ -398,7 +406,7 @@ app.post("/translate", async (req, res) => {
     return res.status(400).send("No Google translate API key is set.");
   }
 
-  if (assertFormat(req, "application/json", res)) {
+  if (assertFormat(req, res, "application/json")) {
     const tr = new googleTranslate.v2.Translate({
       key: googleAPIKey,
     });
