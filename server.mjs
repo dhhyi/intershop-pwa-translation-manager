@@ -178,14 +178,56 @@ app.get("/localizations/:locale/:key", (req, res, next) => {
 });
 
 app.get("/list", (req, res) => {
-  const languages = [...(getConfig()?.locales || [])].sort();
-  const languagesWithURL = languages.map((lang) => ({
-    lang,
-    url: `${req.protocol}://${req.get(
-      "host"
-    )}/localizations/${lang}?unblocked=true`,
-  }));
-  return res.send(languagesWithURL);
+  let links;
+
+  switch (req.query.query) {
+    case "all":
+      if (!getConfig()?.themes?.length) {
+        return res.status(400).send("No themes are configured.");
+      }
+    default:
+      if (!getConfig()?.locales?.length) {
+        return res.status(400).send("No locales are configured.");
+      }
+  }
+
+  switch (req.query.query) {
+    case "all":
+      const locales = [...getConfig()?.locales].sort();
+      const themes = [...getConfig()?.themes].sort();
+
+      links = _.flatten(
+        locales.map((lang) => themes.map((theme) => [lang, theme]))
+      ).map(([locale, theme]) => ({
+        locale,
+        theme,
+        id: `${locale}_${theme}`,
+        url: `${req.protocol}://${req.get(
+          "host"
+        )}/localizations/${locale}_${theme}?unblocked=true`,
+      }));
+      break;
+
+    case "locale":
+      links = [...getConfig()?.locales].sort().map((id) => ({
+        id,
+        url: `${req.protocol}://${req.get(
+          "host"
+        )}/localizations/${id}?unblocked=true`,
+      }));
+      break;
+
+    default:
+      links = [...getConfig()?.languages].sort().map((id) => ({
+        id,
+        url: `${req.protocol}://${req.get(
+          "host"
+        )}/localizations/${id}?unblocked=true`,
+      }));
+      break;
+  }
+
+  return res.send(links);
 });
 
 // </OPEN-DB>
