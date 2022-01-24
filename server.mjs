@@ -101,6 +101,11 @@ const getConfig = (req) => {
   if (req) {
     data.block = blockList.includes(req.ip);
   }
+  data.baseLang = data.baseLang ?? "en";
+  data.languages = (data.locales || [])
+    .map((locale) => /^([a-z]+)/.exec(locale)?.[1])
+    .filter((v, i, a) => !!v && a.indexOf(v) === i)
+    .sort();
   return data;
 };
 
@@ -109,12 +114,12 @@ function logConfig() {
 }
 logConfig();
 
-const configReadOnlyFields = ["translateAvailable"];
+const configReadOnlyFields = ["translateAvailable", "languages"];
 
 const setConfigValue = async (key, value) => {
   const configData = getConfig();
   configData[key] = value;
-  config.data = _.omit(configData, "translateAvailable", "block");
+  config.data = _.omit(configData, ...configReadOnlyFields, "block");
   await config.write();
   logConfig();
 };
@@ -144,7 +149,7 @@ app.get("/localizations/:locale", (req, res, next) => {
   } else {
     let lang;
     if (req.query.exact !== "true") {
-      if (blockList.includes(req.ip)) {
+      if (req.query.unblocked !== "true" && blockList.includes(req.ip)) {
         res.send({});
       } else {
         lang = req.params.locale.replace(".json", "");
@@ -173,12 +178,12 @@ app.get("/localizations/:locale/:key", (req, res, next) => {
 });
 
 app.get("/list", (req, res) => {
-  const languages = getConfig()?.languages || [];
+  const languages = [...(getConfig()?.locales || [])].sort();
   const languagesWithURL = languages.map((lang) => ({
     lang,
     url: `${req.protocol}://${req.get(
       "host"
-    )}/localizations/${lang}?exact=true`,
+    )}/localizations/${lang}?unblocked=true`,
   }));
   return res.send(languagesWithURL);
 });

@@ -8,7 +8,6 @@ axios.interceptors.response.use(
 );
 
 describe("Server List", () => {
-  const locales = ["en", "fr", "de", "es"];
   const baseLang = "en";
 
   const initialData = {
@@ -17,18 +16,25 @@ describe("Server List", () => {
   };
 
   beforeAll(async () => {
-    await axios.put(
-      "/config/languages",
-      locales.filter((l) => l !== baseLang)
-    );
-    await axios.put("/config/baseLang", baseLang, {
+    const languagesRes = await axios.put("/config/locales", [
+      "en_US",
+      "de_DE",
+      "de_AT",
+      "fr_BE",
+      "fr_FR",
+      "es_ES",
+    ]);
+    expect(languagesRes.status).toEqual(204);
+
+    const baseLangRes = await axios.put("/config/baseLang", baseLang, {
       headers: { "content-type": "text/plain" },
     });
+    expect(baseLangRes.status).toEqual(204);
 
-    for (const locale of locales) {
+    for (const lang of ["en", "de", "fr", "es"]) {
       const res = await axios.post("/import", initialData, {
         params: {
-          locale,
+          locale: lang,
           type: "replace",
         },
       });
@@ -39,7 +45,7 @@ describe("Server List", () => {
   });
 
   afterAll(async () => {
-    for (const locale of locales) {
+    for (const locale of ["en", "de", "fr", "es"]) {
       const res = await axios.delete("/import?locale=" + locale);
 
       expect(res.data).toEqual("Deleted all keys.");
@@ -55,16 +61,28 @@ describe("Server List", () => {
     expect(listResponse.data).toMatchInlineSnapshot(`
       Array [
         Object {
-          "lang": "fr",
-          "url": "http://localhost:8001/localizations/fr?exact=true",
+          "lang": "de_AT",
+          "url": "http://localhost:8001/localizations/de_AT?unblocked=true",
         },
         Object {
-          "lang": "de",
-          "url": "http://localhost:8001/localizations/de?exact=true",
+          "lang": "de_DE",
+          "url": "http://localhost:8001/localizations/de_DE?unblocked=true",
         },
         Object {
-          "lang": "es",
-          "url": "http://localhost:8001/localizations/es?exact=true",
+          "lang": "en_US",
+          "url": "http://localhost:8001/localizations/en_US?unblocked=true",
+        },
+        Object {
+          "lang": "es_ES",
+          "url": "http://localhost:8001/localizations/es_ES?unblocked=true",
+        },
+        Object {
+          "lang": "fr_BE",
+          "url": "http://localhost:8001/localizations/fr_BE?unblocked=true",
+        },
+        Object {
+          "lang": "fr_FR",
+          "url": "http://localhost:8001/localizations/fr_FR?unblocked=true",
         },
       ]
     `);

@@ -18,7 +18,9 @@ describe("Server Config", () => {
     expect(res.status).toEqual(200);
     expect(res.data).toMatchInlineSnapshot(`
       Object {
+        "baseLang": "en",
         "block": false,
+        "languages": Array [],
         "translateAvailable": false,
       }
     `);
@@ -234,6 +236,36 @@ describe("Server Config", () => {
     it("should respond with 405", async () => {
       const res = await axios.delete("/config/translateAvailable");
       expect(res.status).toEqual(405);
+    });
+  });
+
+  describe("when retrieving the languages dynamic field", () => {
+    describe("before setting locales", () => {
+      it("should return an empty array", async () => {
+        const res = await axios.get("/config/languages");
+        expect(res.status).toEqual(200);
+        expect(res.data).toEqual([]);
+      });
+    });
+
+    describe("after setting locales", () => {
+      beforeAll(async () => {
+        const localesRes = await axios.put("/config/locales", [
+          "en_US",
+          "de_DE",
+          "de_AT",
+          "nl_BE",
+          "fr_FR",
+        ]);
+        expect(localesRes.data).toBeEmpty();
+        expect(localesRes.status).toEqual(204);
+      });
+
+      it("should return an array with languages", async () => {
+        const res = await axios.get("/config/languages");
+        expect(res.status).toEqual(200);
+        expect(res.data).toEqual(["de", "en", "fr", "nl"]);
+      });
     });
   });
 });

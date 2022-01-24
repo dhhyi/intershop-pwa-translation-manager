@@ -1,5 +1,5 @@
 {
   "ignored": [],
   "baseLang": "en",
-  "languages": ["de", "fr"]
+  "locales": ["en_US", "de_DE", "fr_FR"]
 }
