@@ -350,35 +350,36 @@ app.get("/config/:key", (req, res) => {
   return res.send(data);
 });
 
-app.put("/config/:key", async (req, res) => {
-  let value = req.body;
-  if (typeof value === "string") {
-    if ("true" === value?.toLowerCase()) {
-      value = true;
-    } else if ("false" === value?.toLowerCase()) {
-      value = false;
-    }
-  }
-
+app.put("/config/:key", async (req, res, next) => {
   if (req.params.key === "block") {
     blockList.add(req.ip);
+    return res.sendStatus(204);
   } else if (configReadOnlyFields.includes(req.params.key)) {
-    return res.sendStatus(405);
+    next();
   } else {
+    let value = req.body;
+    if (typeof value === "string") {
+      if ("true" === value?.toLowerCase()) {
+        value = true;
+      } else if ("false" === value?.toLowerCase()) {
+        value = false;
+      }
+    }
     await setConfigValue(req.params.key, value);
+    return res.sendStatus(204);
   }
-  return res.sendStatus(204);
 });
 
-app.delete("/config/:key", async (req, res) => {
+app.delete("/config/:key", async (req, res, next) => {
   if (req.params.key === "block") {
     blockList.remove(req.ip);
+    return res.sendStatus(204);
   } else if (configReadOnlyFields.includes(req.params.key)) {
-    return res.sendStatus(405);
+    next();
   } else {
     await setConfigValue(req.params.key, undefined);
+    return res.sendStatus(204);
   }
-  return res.sendStatus(204);
 });
 
 // </CONFIG>
@@ -411,8 +412,11 @@ app.post("/translate", async (req, res) => {
 
 // </TRANSLATE>
 
-app.use((_, res) => {
+app.get((_, res) => {
   return res.sendStatus(404);
+});
+app.use((_, res) => {
+  return res.sendStatus(405);
 });
 
 app.listen(+process.env.PORT || 8000, () => {
