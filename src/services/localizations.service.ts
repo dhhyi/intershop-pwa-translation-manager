@@ -240,25 +240,25 @@ export class LocalizationsService {
     );
   }
 
-  upload(lang: string, type: string, data: string) {
+  upload(locale: string, type: string, data: string) {
     this.apiPasswordHeaders$
       .pipe(
         first(),
         switchMap((headers) =>
           this.http
-            .post(`/localizations/import/${lang}`, data, {
+            .post(`/import`, data, {
               headers: new HttpHeaders(headers).set(
                 "Content-Type",
                 "text/plain"
               ),
-              params: { type },
+              params: { type, locale },
             })
             .pipe(this.errorHandler())
         )
       )
       .subscribe(() => {
         this.notification.success(
-          `successfully uploaded translations for ${lang} with strategy ${type}`
+          `successfully uploaded translations for ${locale} with strategy ${type}`
         );
         this.triggerUpdate$.next();
       });

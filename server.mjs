@@ -207,102 +207,6 @@ function assertFormat(req, format, res) {
 
 // <DB>
 
-app.get("/localizations", (_, res) => {
-  return res.send(localizations.data);
-});
-
-app.post("/localizations", async (req, res) => {
-  if (assertFormat(req, "application/json", res)) {
-    localizations.data = req.body;
-    await localizations.write();
-    return res.sendStatus(204);
-  }
-});
-
-app.post("/localizations/import/:locale", async (req, res) => {
-  if (assertFormat(req, "text/plain", res)) {
-    if (!req.query.type) {
-      return res
-        .status(400)
-        .send(
-          "Query parameter 'type' is required. Options: replace, overwrite, add"
-        );
-    }
-
-    if (!["replace", "overwrite", "add"].some((t) => t === req.query.type)) {
-      return res
-        .status(400)
-        .send(
-          "Value for query parameter 'type' is not supported. Options: replace, overwrite, add"
-        );
-    }
-
-    let data;
-    try {
-      data = JSON.parse(req.body);
-    } catch (e1) {
-      try {
-        data = parse(req.body, {
-          delimiter: ";",
-          encoding: "utf-8",
-          recordDelimiter: ["\n", "\r", "\r\n"],
-          skip_empty_lines: true,
-        }).reduce(
-          (acc, [key, , translation]) => ({ ...acc, [key]: translation }),
-          {}
-        );
-      } catch (e2) {
-        console.error(e2);
-        return res.status(400).send("Could not parse CSV or JSON content");
-      }
-    }
-
-    if (!Object.keys(data).length) {
-      return req
-        .status(400)
-        .send("Could not parse any data in the CSV or JSON content");
-    }
-
-    if (!localizations.data[req.params.locale]) {
-      localizations.data[req.params.locale] = {};
-    }
-
-    switch (req.query.type) {
-      case "replace":
-        localizations.data[req.params.locale] = data;
-        break;
-
-      case "overwrite":
-        localizations.data[req.params.locale] = {
-          ...localizations.data[req.params.locale],
-          ...data,
-        };
-        break;
-
-      case "add":
-        localizations.data[req.params.locale] = {
-          ...data,
-          ...localizations.data[req.params.locale],
-        };
-        break;
-
-      default:
-        return res.sendStatus(400);
-    }
-
-    await localizations.write();
-    return res.sendStatus(204);
-  }
-});
-
-app.post("/localizations/:locale", async (req, res) => {
-  if (assertFormat(req, "application/json", res)) {
-    localizations.data[req.params.locale] = req.body;
-    await localizations.write();
-    return res.sendStatus(204);
-  }
-});
-
 app.post("/localizations/:locale/:key", async (req, res) => {
   if (assertFormat(req, "text/plain", res)) {
     if (!localizations.data[req.params.locale]) {
@@ -326,6 +230,107 @@ app.delete("/localizations/:locale/:key", async (req, res) => {
 });
 
 // </DB>
+
+// <IMPORT>
+
+app.post("/import", async (req, res) => {
+  if (assertFormat(req, "text/plain", res)) {
+    const locale = req.query.locale;
+    if (!locale) {
+      return res.status(400).send("Query parameter 'locale' is required.");
+    }
+
+    const type = req.query.type;
+    const options = ["replace", "overwrite", "add", "delete"];
+    if (!type) {
+      return res
+        .status(400)
+        .send(
+          "Query parameter 'type' is required. Options: " + options.join(", ")
+        );
+    }
+
+    if (!options.some((t) => t === type)) {
+      return res
+        .status(400)
+        .send(
+          "Value for query parameter 'type' is not supported. Options: " +
+            options.join(", ")
+        );
+    }
+
+    let data;
+
+    if (type !== "delete") {
+      try {
+        data = JSON.parse(req.body);
+      } catch (e1) {
+        try {
+          data = parse(req.body, {
+            delimiter: ";",
+            encoding: "utf-8",
+            recordDelimiter: ["\n", "\r", "\r\n"],
+            skip_empty_lines: true,
+          }).reduce(
+            (acc, [key, , translation]) => ({ ...acc, [key]: translation }),
+            {}
+          );
+        } catch (e2) {
+          console.error(e2);
+          return res.status(400).send("Could not parse CSV or JSON content");
+        }
+      }
+
+      if (!Object.keys(data).length) {
+        return res
+          .status(400)
+          .send("Could not parse any data in the CSV or JSON content");
+      }
+
+      if (!localizations.data[locale]) {
+        localizations.data[locale] = {};
+      }
+    } else {
+      if (req.body) {
+        return res.status(400).send("Did not expect a request body.");
+      }
+    }
+
+    console.log("importing", req.query.locale, "with strategy", req.query.type);
+
+    switch (type) {
+      case "replace":
+        localizations.data[locale] = data;
+        break;
+
+      case "overwrite":
+        localizations.data[locale] = {
+          ...localizations.data[locale],
+          ...data,
+        };
+        break;
+
+      case "add":
+        localizations.data[locale] = {
+          ...data,
+          ...localizations.data[locale],
+        };
+        break;
+
+      case "delete":
+        localizations.data[locale] = undefined;
+        break;
+
+      default:
+        return res.sendStatus(400);
+    }
+
+    await localizations.write();
+    return res.sendStatus(204);
+  }
+});
+
+// </IMPORT>
 
 // <CONFIG>
 
