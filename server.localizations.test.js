@@ -21,7 +21,14 @@ describe("Server Localizations", () => {
       },
     });
 
-    expect(res.data).toMatchInlineSnapshot(`"Imported 2 keys."`);
+    expect(res.data).toEqual("Imported 2 keys.");
+    expect(res.status).toEqual(200);
+  });
+
+  afterAll(async () => {
+    const res = await axios.delete("/import?locale=fr");
+
+    expect(res.data).toEqual("Deleted all keys.");
     expect(res.status).toEqual(200);
   });
 

@@ -21,7 +21,7 @@ describe("Server Import", () => {
       const res = await axios.post("/import?locale=de", { foo: "test" });
       expect(res.status).toEqual(400);
       expect(res.data).toMatchInlineSnapshot(
-        `"Query parameter 'type' is required. Options: replace, overwrite, add, delete"`
+        `"Query parameter 'type' is required. Options: replace, overwrite, add"`
       );
     });
 
@@ -30,16 +30,6 @@ describe("Server Import", () => {
       expect(res.status).toEqual(400);
       expect(res.data).toMatchInlineSnapshot(
         `"Could not parse any data in the CSV or JSON content"`
-      );
-    });
-
-    it("should respond with 400 if type is 'delete' and it has a payload", async () => {
-      const res = await axios.post("/import?locale=de&type=delete", {
-        foo: "bar",
-      });
-      expect(res.status).toEqual(400);
-      expect(res.data).toMatchInlineSnapshot(
-        `"Did not expect a request body."`
       );
     });
   });
@@ -165,11 +155,10 @@ bar;;csv
     });
   });
 
-  describe("when importing a language with delete", () => {
+  describe("when deleting a language", () => {
     it("should respond with 200", async () => {
-      const res = await axios.post("/import?locale=de&type=delete", undefined, {
-        headers: { "content-type": "application/json" },
-      });
+      const res = await axios.delete("/import?locale=de");
+      expect(res.data).toEqual("Deleted all keys.");
       expect(res.status).toEqual(200);
       expect(res.data).toMatchInlineSnapshot(`"Deleted all keys."`);
     });

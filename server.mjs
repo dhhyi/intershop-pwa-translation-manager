@@ -114,7 +114,7 @@ const configReadOnlyFields = ["translateAvailable"];
 const setConfigValue = async (key, value) => {
   const configData = getConfig();
   configData[key] = value;
-  config.data = _.omit(configData, "translateAvailable");
+  config.data = _.omit(configData, "translateAvailable", "block");
   await config.write();
   logConfig();
 };
@@ -247,7 +247,7 @@ app.post("/import", async (req, res) => {
     }
 
     const type = req.query.type;
-    const options = ["replace", "overwrite", "add", "delete"];
+    const options = ["replace", "overwrite", "add"];
     if (!type) {
       return res
         .status(400)
@@ -269,7 +269,7 @@ app.post("/import", async (req, res) => {
 
     if (typeof req.body === "object") {
       data = req.body;
-    } else if (type !== "delete") {
+    } else {
       try {
         data = JSON.parse(req.body);
       } catch (e1) {
@@ -290,11 +290,7 @@ app.post("/import", async (req, res) => {
       }
     }
 
-    if (type === "delete" && data && Object.keys(data).length) {
-      return res.status(400).send("Did not expect a request body.");
-    }
-
-    if (type !== "delete" && !Object.keys(data).length) {
+    if (!Object.keys(data).length) {
       return res
         .status(400)
         .send("Could not parse any data in the CSV or JSON content");
@@ -332,11 +328,6 @@ app.post("/import", async (req, res) => {
         } keys.`;
         break;
 
-      case "delete":
-        localizations.data[locale] = undefined;
-        message = `Deleted all keys.`;
-        break;
-
       default:
         return res.sendStatus(400);
     }
@@ -344,6 +335,16 @@ app.post("/import", async (req, res) => {
     await localizations.write();
     return res.status(200).send(message);
   }
+});
+
+app.delete("/import", async (req, res) => {
+  const locale = req.query.locale;
+  if (!locale) {
+    return res.status(400).send("Query parameter 'locale' is required.");
+  }
+  localizations.data[locale] = undefined;
+  await localizations.write();
+  return res.send(`Deleted all keys.`);
 });
 
 // </IMPORT>
