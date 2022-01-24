@@ -25,6 +25,7 @@ import {
   switchMap,
 } from "rxjs/operators";
 
+import { ConfigService } from "../services/config.service";
 import {
   LocalizationsService,
   LocalizationWithBaseType,
@@ -38,12 +39,12 @@ import { UploadDialogComponent } from "./upload-dialog.component";
 @Component({
   selector: "app-root",
   template: `
-    <mat-toolbar *ngIf="(service.maintenance$ | async) !== true">
+    <mat-toolbar *ngIf="(config.select('maintenance') | async) !== true">
       <mat-form-field appearance="standard">
         <mat-label>Language</mat-label>
         <mat-select [formControl]="lang">
           <mat-option
-            *ngFor="let lang of service.languages$ | async"
+            *ngFor="let lang of config.select('languages') | async"
             [value]="lang"
             >{{ lang }}</mat-option
           >
@@ -51,7 +52,7 @@ import { UploadDialogComponent } from "./upload-dialog.component";
       </mat-form-field>
       <mat-slide-toggle
         (change)="blockAPI($event)"
-        [checked]="this.service.blockedAPI$ | async"
+        [checked]="config.select('block') | async"
         >Block API</mat-slide-toggle
       >
       <mat-slide-toggle
@@ -105,7 +106,9 @@ import { UploadDialogComponent } from "./upload-dialog.component";
         </a>
       </mat-menu>
     </mat-toolbar>
-    <div *ngIf="(service.maintenance$ | async) !== true; else maintenance">
+    <div
+      *ngIf="(config.select('maintenance') | async) !== true; else maintenance"
+    >
       <table
         *ngIf="(translations$ | async)?.length || (lang.valueChanges | async)"
         mat-table
@@ -286,6 +289,7 @@ export class AppComponent implements AfterViewInit {
     private fb: FormBuilder,
     private dialog: MatDialog,
     public service: LocalizationsService,
+    public config: ConfigService,
     private notification: NotificationService,
     private sanitizer: DomSanitizer,
     route: ActivatedRoute,
@@ -388,7 +392,7 @@ export class AppComponent implements AfterViewInit {
         data: {
           element,
           google:
-            this.service.translateAvailable$.value &&
+            this.config.get("translateAvailable") &&
             this.service.translate(this.lang.value, element.base),
         },
       }
@@ -451,6 +455,6 @@ export class AppComponent implements AfterViewInit {
   }
 
   blockAPI(event: MatSlideToggleChange) {
-    this.service.blockAPI(event.checked);
+    this.config.blockAPI(event.checked);
   }
 }

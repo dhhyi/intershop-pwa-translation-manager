@@ -1,30 +1,18 @@
-import {
-  HttpClient,
-  HttpErrorResponse,
-  HttpHeaders,
-} from "@angular/common/http";
+import { HttpClient, HttpHeaders } from "@angular/common/http";
 import { Injectable } from "@angular/core";
-import { isEqual, memoize } from "lodash-es";
+import { memoize } from "lodash-es";
+import { BehaviorSubject, combineLatest, Observable } from "rxjs";
 import {
-  BehaviorSubject,
-  combineLatest,
-  EMPTY,
-  Observable,
-  ObservableInput,
-  timer,
-} from "rxjs";
-import {
-  catchError,
-  distinctUntilChanged,
   filter,
   first,
   map,
   pairwise,
   shareReplay,
   switchMap,
-  withLatestFrom,
 } from "rxjs/operators";
 
+import { APIService } from "./api.service";
+import { ConfigService } from "./config.service";
 import { NotificationService } from "./notification.service";
 
 export interface LocalizationWithBaseType {
@@ -40,9 +28,12 @@ export interface LocalizationWithBaseType {
 export class LocalizationsService {
   constructor(
     private http: HttpClient,
+    private apiService: APIService,
+    private config: ConfigService,
     private notification: NotificationService
   ) {
-    this.maintenance$
+    config
+      .select("maintenance")
       .pipe(
         pairwise(),
         filter(([before, after]) => before && !after)
@@ -50,40 +41,9 @@ export class LocalizationsService {
       .subscribe(() => {
         this.triggerUpdate$.next();
       });
-
-    this.config$
-      .pipe(
-        map((config) => (config.translateAvailable as boolean) || false),
-        distinctUntilChanged()
-      )
-      .subscribe(this.translateAvailable$);
   }
 
   private triggerUpdate$ = new BehaviorSubject<void>(undefined);
-
-  private apiPassword$ = new BehaviorSubject<string>(
-    sessionStorage.getItem("API_PASSWORD") || ""
-  );
-
-  private apiPasswordHeaders$ = this.apiPassword$.pipe(
-    map((pass) => ({
-      Authorization: pass,
-    }))
-  );
-
-  private errorHandler = <T>() =>
-    catchError<T, ObservableInput<T>>((err) => {
-      if (err instanceof HttpErrorResponse && err.status === 401) {
-        const pass = window.prompt("Enter API password");
-        this.apiPassword$.next(pass);
-        sessionStorage.setItem("API_PASSWORD", pass);
-      } else {
-        this.notification.error(
-          typeof err.error === "string" ? err.error : err.message
-        );
-      }
-      return EMPTY;
-    });
 
   private localizations$ = memoize((lang: string) =>
     this.triggerUpdate$.pipe(
@@ -92,7 +52,7 @@ export class LocalizationsService {
           .get<Record<string, string>>(`/localizations/${lang}`, {
             params: { exact: true },
           })
-          .pipe(this.errorHandler())
+          .pipe(this.apiService.errorHandler())
       ),
       shareReplay(1)
     )
@@ -106,11 +66,11 @@ export class LocalizationsService {
     lang: string
   ): Observable<LocalizationWithBaseType[]> =>
     combineLatest([
-      this.baseLang$.pipe(
-        switchMap((baseLang) => this.localizations$(baseLang))
-      ),
+      this.config
+        .select("baseLang")
+        .pipe(switchMap((baseLang) => this.localizations$(baseLang))),
       this.localizations$(lang),
-      this.ignoredKeys$,
+      this.config.select("ignored").pipe(map((x) => x || [])),
     ]).pipe(
       map(([base, loc, ignored]) =>
         Object.keys(base).map((key) => ({
@@ -124,32 +84,8 @@ export class LocalizationsService {
       )
     );
 
-  private config$ = combineLatest([
-    timer(0, 30000),
-    this.apiPasswordHeaders$,
-  ]).pipe(
-    switchMap(([, headers]) =>
-      this.http
-        .get<Record<string, unknown>>(`/config`, { headers })
-        .pipe(this.errorHandler())
-    ),
-    shareReplay(1)
-  );
-
-  private ignoredKeys$ = this.config$.pipe(
-    map((config) => (config?.ignored as string[]) || []),
-    distinctUntilChanged<string[]>(isEqual)
-  );
-
-  private baseLang$ = this.config$.pipe(
-    map((config) => (config.baseLang as string) || "en"),
-    distinctUntilChanged()
-  );
-
-  translateAvailable$ = new BehaviorSubject<boolean>(false);
-
   set(lang: string, key: string, value: unknown) {
-    this.apiPasswordHeaders$
+    this.apiService.apiPasswordHeaders$
       .pipe(
         first(),
         switchMap((headers) =>
@@ -160,7 +96,7 @@ export class LocalizationsService {
                 "text/plain"
               ),
             })
-            .pipe(this.errorHandler())
+            .pipe(this.apiService.errorHandler())
         )
       )
       .subscribe(() => {
@@ -170,7 +106,7 @@ export class LocalizationsService {
   }
 
   delete(lang: string, key: string) {
-    this.apiPasswordHeaders$
+    this.apiService.apiPasswordHeaders$
       .pipe(
         first(),
         switchMap((headers) =>
@@ -181,7 +117,7 @@ export class LocalizationsService {
                 "text/plain"
               ),
             })
-            .pipe(this.errorHandler())
+            .pipe(this.apiService.errorHandler())
         )
       )
       .subscribe(() => {
@@ -190,58 +126,19 @@ export class LocalizationsService {
       });
   }
 
-  blockedAPI$ = combineLatest([timer(0, 5000), this.apiPasswordHeaders$]).pipe(
-    switchMap(([, headers]) =>
-      this.http
-        .get<boolean>(`/config/block`, { headers })
-        .pipe(this.errorHandler())
-    )
-  );
-
-  blockAPI(checked: boolean) {
-    let method: (headers: any) => Observable<unknown>;
-    if (checked) {
-      method = (headers) => this.http.put(`/config/block`, {}, { headers });
-    } else {
-      method = (headers) => this.http.delete(`/config/block`, { headers });
-    }
-    this.apiPasswordHeaders$
-      .pipe(
-        first(),
-        switchMap((headers) => method(headers).pipe(this.errorHandler()))
-      )
-      .subscribe(() => {
-        this.notification.success(
-          `successfully ${checked ? "set" : "unset"} API block`
-        );
-      });
-  }
-
-  languages$ = this.config$.pipe(
-    map((config) => (config?.languages as string[]) || [])
-  );
-
-  maintenance$ = this.config$.pipe(
-    withLatestFrom(this.languages$),
-    map(
-      ([config, languages]) =>
-        (config?.maintenance as boolean) || !languages?.length
-    )
-  );
-
   translate(lang: string, text: string): Observable<string> {
-    return this.apiPasswordHeaders$.pipe(
+    return this.apiService.apiPasswordHeaders$.pipe(
       first(),
       switchMap((headers) =>
         this.http
           .post("/translate", { lang, text }, { responseType: "text", headers })
-          .pipe(this.errorHandler())
+          .pipe(this.apiService.errorHandler())
       )
     );
   }
 
   upload(locale: string, type: string, data: string) {
-    this.apiPasswordHeaders$
+    this.apiService.apiPasswordHeaders$
       .pipe(
         first(),
         switchMap((headers) =>
@@ -253,7 +150,7 @@ export class LocalizationsService {
               ),
               params: { type, locale },
             })
-            .pipe(this.errorHandler())
+            .pipe(this.apiService.errorHandler())
         )
       )
       .subscribe(() => {
