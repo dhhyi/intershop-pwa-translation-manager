@@ -109,84 +109,86 @@ import { UploadDialogComponent } from "./upload-dialog.component";
     <div
       *ngIf="(config.select('maintenance') | async) !== true; else maintenance"
     >
-      <table
-        *ngIf="(translations$ | async)?.length || (lang.valueChanges | async)"
-        mat-table
-        [dataSource]="pagedTranslations$"
-      >
-        <ng-container *ngFor="let column of columns">
-          <ng-container [matColumnDef]="column.id">
-            <th mat-header-cell *matHeaderCellDef>
-              <ng-container [ngSwitch]="true">
-                <ng-container *ngSwitchCase="column.id === 'edit'">
-                </ng-container>
-                <ng-container *ngSwitchCase="column.id === 'delete'">
-                </ng-container>
-                <ng-container *ngSwitchDefault>
-                  <mat-form-field
-                    class="example-form-field"
-                    appearance="standard"
-                  >
-                    <mat-label>{{ column.value }}</mat-label>
-                    <input
-                      matInput
-                      type="text"
-                      [formControl]="$any(filters.get(column.id))"
-                    />
-                    <button
-                      *ngIf="filters.get(column.id).valueChanges | async"
-                      matSuffix
-                      mat-icon-button
-                      aria-label="Clear"
-                      (click)="filters.get(column.id).setValue('')"
+      <ng-container *ngIf="displayedColumns$ | async as displayedColumns">
+        <table
+          *ngIf="(translations$ | async)?.length || (lang.valueChanges | async)"
+          mat-table
+          [dataSource]="pagedTranslations$"
+        >
+          <ng-container *ngFor="let column of columns">
+            <ng-container [matColumnDef]="column.id">
+              <th mat-header-cell *matHeaderCellDef>
+                <ng-container [ngSwitch]="true">
+                  <ng-container *ngSwitchCase="column.id === 'edit'">
+                  </ng-container>
+                  <ng-container *ngSwitchCase="column.id === 'delete'">
+                  </ng-container>
+                  <ng-container *ngSwitchDefault>
+                    <mat-form-field
+                      class="example-form-field"
+                      appearance="standard"
                     >
-                      <fa-icon [icon]="faTimes"></fa-icon>
-                    </button>
-                  </mat-form-field>
+                      <mat-label>{{ column.value }}</mat-label>
+                      <input
+                        matInput
+                        type="text"
+                        [formControl]="$any(filters.get(column.id))"
+                      />
+                      <button
+                        *ngIf="filters.get(column.id).valueChanges | async"
+                        matSuffix
+                        mat-icon-button
+                        aria-label="Clear"
+                        (click)="filters.get(column.id).setValue('')"
+                      >
+                        <fa-icon [icon]="faTimes"></fa-icon>
+                      </button>
+                    </mat-form-field>
+                  </ng-container>
                 </ng-container>
-              </ng-container>
-            </th>
-            <td mat-cell *matCellDef="let element">
-              <ng-container [ngSwitch]="true">
-                <ng-container *ngSwitchCase="column.id === 'edit'">
-                  <a class="icon" (click)="edit(element)"
-                    ><fa-icon [icon]="faEdit"></fa-icon
-                  ></a>
+              </th>
+              <td mat-cell *matCellDef="let element">
+                <ng-container [ngSwitch]="true">
+                  <ng-container *ngSwitchCase="column.id === 'edit'">
+                    <a class="icon" (click)="edit(element)"
+                      ><fa-icon [icon]="faEdit"></fa-icon
+                    ></a>
+                  </ng-container>
+                  <ng-container *ngSwitchCase="column.id === 'delete'">
+                    <a
+                      *ngIf="!element.missing"
+                      class="icon"
+                      (click)="remove(element)"
+                      ><fa-icon [icon]="faTrash"></fa-icon
+                    ></a>
+                  </ng-container>
+                  <ng-container *ngSwitchDefault>
+                    <span
+                      class="unselectable"
+                      [ngClass]="{
+                        'missing-translation': element.missing,
+                        'dupe-translation': element.dupe,
+                        'protected-translation': element.ignored
+                      }"
+                      ><ng-container
+                        *ngIf="element[column.id] !== undefined; else undef"
+                        >{{ element[column.id] }}</ng-container
+                      ><ng-template #undef><i>undefined</i></ng-template>
+                    </span>
+                  </ng-container>
                 </ng-container>
-                <ng-container *ngSwitchCase="column.id === 'delete'">
-                  <a
-                    *ngIf="!element.missing"
-                    class="icon"
-                    (click)="remove(element)"
-                    ><fa-icon [icon]="faTrash"></fa-icon
-                  ></a>
-                </ng-container>
-                <ng-container *ngSwitchDefault>
-                  <span
-                    class="unselectable"
-                    [ngClass]="{
-                      'missing-translation': element.missing,
-                      'dupe-translation': element.dupe,
-                      'protected-translation': element.ignored
-                    }"
-                    ><ng-container
-                      *ngIf="element[column.id] !== undefined; else undef"
-                      >{{ element[column.id] }}</ng-container
-                    ><ng-template #undef><i>undefined</i></ng-template>
-                  </span>
-                </ng-container>
-              </ng-container>
-            </td>
+              </td>
+            </ng-container>
           </ng-container>
-        </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr
-          mat-row
-          *matRowDef="let row; columns: displayedColumns"
-          (dblclick)="edit(row)"
-        ></tr>
-      </table>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr
+            mat-row
+            *matRowDef="let row; columns: displayedColumns"
+            (dblclick)="edit(row)"
+          ></tr>
+        </table>
+      </ng-container>
     </div>
     <ng-template #maintenance>
       <h1 class="center">MAINTENANCE! Please come by later.</h1>
@@ -270,12 +272,20 @@ export class AppComponent implements AfterViewInit {
     { id: "delete", value: "" },
   ];
 
-  displayedColumns = this.columns.map((x) => x.id);
+  displayedColumns$ = combineLatest([
+    this.config.select("baseLang"),
+    this.lang.valueChanges,
+  ]).pipe(
+    map(([base, selected]) =>
+      base === selected ? this.columns.slice(0, 2) : this.columns
+    ),
+    map((cols) => cols.map((x) => x.id))
+  );
+
   filters = this.fb.group(
-    this.columns.reduce(
-      (acc, x) => ({ ...acc, [x.id]: this.fb.control(undefined) }),
-      {}
-    )
+    this.columns
+      .filter((x) => !!x.value)
+      .reduce((acc, x) => ({ ...acc, [x.id]: this.fb.control(undefined) }), {})
   );
 
   faEdit = faEdit;
@@ -383,6 +393,10 @@ export class AppComponent implements AfterViewInit {
       this.notification.warning(
         `The translation for "${element.key}" is protected and cannot be changed here.`
       );
+      return;
+    }
+    if (this.config.get("baseLang") === this.lang.value) {
+      this.notification.warning(`Editing base translations is not supported.`);
       return;
     }
 
