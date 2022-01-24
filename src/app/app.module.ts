@@ -1,5 +1,5 @@
 import { CommonModule } from "@angular/common";
-import { HttpClientModule } from "@angular/common/http";
+import { HttpClientModule, HTTP_INTERCEPTORS } from "@angular/common/http";
 import { NgModule } from "@angular/core";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { MatAutocompleteModule } from "@angular/material/autocomplete";
@@ -28,6 +28,7 @@ import { TranslateCompiler, TranslateModule } from "@ngx-translate/core";
 import { ToastrModule } from "ngx-toastr";
 
 import { PWATranslateCompiler } from "../ish-pwa/pwa-translate-compiler";
+import { AuthInterceptor } from "../services/auth.interceptor";
 
 import { AppComponent } from "./app.component";
 import { ConfirmDialogComponent } from "./confirm-dialog.component";
@@ -73,6 +74,9 @@ import { UploadDialogComponent } from "./upload-dialog.component";
       compiler: { provide: TranslateCompiler, useClass: PWATranslateCompiler },
     }),
     RouterModule.forRoot([]),
+  ],
+  providers: [
+    { provide: HTTP_INTERCEPTORS, multi: true, useClass: AuthInterceptor },
   ],
   bootstrap: [AppComponent],
 })
