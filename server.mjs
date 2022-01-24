@@ -306,9 +306,11 @@ app.post("/import", async (req, res) => {
 
     console.log("importing", req.query.locale, "with strategy", req.query.type);
 
+    let message;
     switch (type) {
       case "replace":
         localizations.data[locale] = data;
+        message = `Imported ${Object.keys(data).length} keys.`;
         break;
 
       case "overwrite":
@@ -316,17 +318,23 @@ app.post("/import", async (req, res) => {
           ...localizations.data[locale],
           ...data,
         };
+        message = `Imported ${Object.keys(data).length} keys.`;
         break;
 
       case "add":
+        const originalKeys = Object.keys(localizations.data[locale]);
         localizations.data[locale] = {
           ...data,
           ...localizations.data[locale],
         };
+        message = `Imported ${
+          Object.keys(data).filter((k) => !originalKeys.includes(k)).length
+        } keys.`;
         break;
 
       case "delete":
         localizations.data[locale] = undefined;
+        message = `Deleted all keys.`;
         break;
 
       default:
@@ -334,7 +342,7 @@ app.post("/import", async (req, res) => {
     }
 
     await localizations.write();
-    return res.sendStatus(204);
+    return res.status(200).send(message);
   }
 });
 
