@@ -4,6 +4,9 @@ module.exports = {
   entry: "./server.mjs",
   target: "node",
   mode: "production",
+  externals: {
+    express: "commonjs express",
+  },
   experiments: {
     topLevelAwait: true,
   },
