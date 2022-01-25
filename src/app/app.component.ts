@@ -12,10 +12,12 @@ import {
   faBars,
   faFileDownload,
   faFileUpload,
+  faFilter,
+  faBan,
 } from "@fortawesome/free-solid-svg-icons";
 import escapeStringRegexp from "escape-string-regexp";
 import { mapValues } from "lodash-es";
-import { BehaviorSubject, combineLatest, Observable } from "rxjs";
+import { combineLatest, Observable } from "rxjs";
 import {
   debounceTime,
   map,
@@ -23,6 +25,7 @@ import {
   shareReplay,
   startWith,
   switchMap,
+  tap,
 } from "rxjs/operators";
 
 import { ConfigService } from "../services/config.service";
@@ -55,56 +58,76 @@ import { UploadDialogComponent } from "./upload-dialog.component";
         [checked]="config.select('block') | async"
         >Block API</mat-slide-toggle
       >
-      <mat-slide-toggle
-        (change)="onlyMissing$.next($event.checked)"
-        [checked]="onlyMissing$ | async"
-        [disabled]="(lang.valueChanges | async) === null"
-        >Missing</mat-slide-toggle
-      >
-      <mat-slide-toggle
-        (change)="onlyDupes$.next($event.checked)"
-        [checked]="onlyDupes$ | async"
-        [disabled]="(lang.valueChanges | async) === null"
-        >Dupes</mat-slide-toggle
-      >
-      <mat-slide-toggle
-        (change)="onlyEmpty$.next($event.checked)"
-        [checked]="onlyEmpty$ | async"
-        [disabled]="(lang.valueChanges | async) === null"
-        >Empty</mat-slide-toggle
-      >
+
       <mat-paginator
         [pageSizeOptions]="[10, 15, 20, 50, 100, 1000]"
         showFirstLastButtons
         [length]="(translations$ | async)?.length"
       >
       </mat-paginator>
-      <button
-        mat-icon-button
-        [matMenuTriggerFor]="menu"
-        aria-label="More Actions"
-      >
-        <fa-icon [icon]="faBars" size="lg"></fa-icon>
-      </button>
-      <mat-menu #menu="matMenu">
-        <a
-          mat-menu-item
-          [href]="csvDownloadFile$ | async"
-          [download]="csvDownloadName$ | async"
-          [disabled]="(csvDownloadFile$ | async) === null"
+
+      <div class="menus">
+        <button
+          mat-icon-button
+          [matMenuTriggerFor]="filterMenu"
+          aria-label="Filters"
+          [ngClass]="{ 'filters-active': filtersActive$ | async }"
         >
-          <fa-icon [icon]="faFileDownload"></fa-icon>
-          <span>Download Table</span>
-        </a>
-        <a
-          mat-menu-item
-          [disabled]="!lang.value"
-          (click)="uploadTranslations()"
+          <fa-icon [icon]="faFilter" size="lg"></fa-icon>
+        </button>
+        <mat-menu #filterMenu="matMenu">
+          <a
+            mat-menu-item
+            [disabled]="(filtersActive$ | async) !== true"
+            (click)="clearAllFilters()"
+          >
+            <fa-icon [icon]="faBan"></fa-icon>
+            <span>Clear Filters</span>
+          </a>
+          <div mat-menu-item>
+            <mat-slide-toggle [formControl]="$any(filters.controls.onlyMissing)"
+              >Missing</mat-slide-toggle
+            >
+          </div>
+          <div mat-menu-item>
+            <mat-slide-toggle [formControl]="$any(filters.controls.onlyDupes)"
+              >Dupes</mat-slide-toggle
+            >
+          </div>
+          <div mat-menu-item>
+            <mat-slide-toggle [formControl]="$any(filters.controls.onlyEmpty)"
+              >Empty</mat-slide-toggle
+            >
+          </div>
+        </mat-menu>
+
+        <button
+          mat-icon-button
+          [matMenuTriggerFor]="actionMenu"
+          aria-label="More Actions"
         >
-          <fa-icon [icon]="faFileUpload"></fa-icon>
-          <span>Upload</span>
-        </a>
-      </mat-menu>
+          <fa-icon [icon]="faBars" size="lg"></fa-icon>
+        </button>
+        <mat-menu #actionMenu="matMenu">
+          <a
+            mat-menu-item
+            [href]="csvDownloadFile$ | async"
+            [download]="csvDownloadName$ | async"
+            [disabled]="(csvDownloadFile$ | async) === null"
+          >
+            <fa-icon [icon]="faFileDownload"></fa-icon>
+            <span>Download Table</span>
+          </a>
+          <a
+            mat-menu-item
+            [disabled]="!lang.value"
+            (click)="uploadTranslations()"
+          >
+            <fa-icon [icon]="faFileUpload"></fa-icon>
+            <span>Upload</span>
+          </a>
+        </mat-menu>
+      </div>
     </mat-toolbar>
     <div
       *ngIf="(config.select('maintenance') | async) !== true; else maintenance"
@@ -256,10 +279,6 @@ import { UploadDialogComponent } from "./upload-dialog.component";
 export class AppComponent implements AfterViewInit {
   lang = this.fb.control("");
 
-  onlyMissing$ = new BehaviorSubject<boolean>(false);
-  onlyDupes$ = new BehaviorSubject<boolean>(false);
-  onlyEmpty$ = new BehaviorSubject<boolean>(false);
-
   @ViewChild(MatPaginator) paginator: MatPaginator;
 
   pagedTranslations$: Observable<LocalizationWithBaseType[]>;
@@ -272,20 +291,27 @@ export class AppComponent implements AfterViewInit {
     { id: "delete", value: "" },
   ];
 
+  filters = this.fb.group({
+    key: this.fb.control(undefined),
+    base: this.fb.control(undefined),
+    tr: this.fb.control(undefined),
+    onlyMissing: this.fb.control(undefined),
+    onlyDupes: this.fb.control(undefined),
+    onlyEmpty: this.fb.control(undefined),
+  });
+
+  filtersActive$: Observable<boolean>;
+
   displayedColumns$ = combineLatest([
     this.config.select("baseLang"),
     this.lang.valueChanges,
   ]).pipe(
     map(([base, selected]) =>
-      base === selected ? this.columns.slice(0, 2) : this.columns
+      base === selected
+        ? this.columns.filter((c) => ["key", "base"].some((id) => c.id === id))
+        : this.columns
     ),
     map((cols) => cols.map((x) => x.id))
-  );
-
-  filters = this.fb.group(
-    this.columns
-      .filter((x) => !!x.value)
-      .reduce((acc, x) => ({ ...acc, [x.id]: this.fb.control(undefined) }), {})
   );
 
   faEdit = faEdit;
@@ -294,6 +320,8 @@ export class AppComponent implements AfterViewInit {
   faBars = faBars;
   faFileDownload = faFileDownload;
   faFileUpload = faFileUpload;
+  faFilter = faFilter;
+  faBan = faBan;
 
   constructor(
     private fb: FormBuilder,
@@ -310,31 +338,45 @@ export class AppComponent implements AfterViewInit {
         this.lang.setValue(lang);
       }
     });
-    this.lang.valueChanges.subscribe((lang) => {
-      if (lang) {
-        router.navigate([], { queryParams: { lang }, relativeTo: route });
-      }
-    });
+    this.lang.valueChanges
+      .pipe(startWith(this.lang.value))
+      .subscribe((lang) => {
+        if (lang) {
+          router.navigate([], { queryParams: { lang }, relativeTo: route });
+        }
+
+        Object.entries(this.filters.controls)
+          .filter(([c]) => c.startsWith("only"))
+          .forEach(([, control]) => {
+            if (lang) {
+              control.enable();
+            } else {
+              control.disable();
+            }
+          });
+      });
+
+    this.filtersActive$ = this.filters.valueChanges.pipe(
+      map((filters) => Object.values(filters).some((v) => !!v))
+    );
   }
 
   translations$ = combineLatest([
     this.lang.valueChanges,
-    this.onlyMissing$,
-    this.onlyDupes$,
-    this.onlyEmpty$,
     this.filters.valueChanges.pipe(
-      startWith({}),
+      startWith(this.filters.value),
       map((record) =>
-        mapValues(
-          record,
-          (v: unknown) =>
-            v && new RegExp(`${escapeStringRegexp(v.toString())}`, "i")
+        mapValues(record, (v: unknown) =>
+          typeof v === "string"
+            ? new RegExp(`${escapeStringRegexp(v.toString())}`, "i")
+            : v
         )
       ),
       debounceTime(500)
     ),
   ]).pipe(
-    switchMap(([lang, onlyMissing, onlyDupes, onlyEmpty, filters]) =>
+    tap(console.log),
+    switchMap(([lang, filters]) =>
       this.service
         .localizationsWithBase$(lang)
         .pipe(
@@ -342,19 +384,23 @@ export class AppComponent implements AfterViewInit {
             array
               .filter(
                 (e) =>
-                  (onlyMissing && e.missing) ||
-                  (onlyDupes && e.dupe) ||
-                  (onlyEmpty && e.tr?.trim() === "") ||
-                  (!onlyMissing && !onlyDupes && !onlyEmpty)
+                  (filters.onlyMissing === true && e.missing) ||
+                  (filters.onlyDupes === true && e.dupe) ||
+                  (filters.onlyEmpty === true && e.tr?.trim() === "") ||
+                  (!filters.onlyMissing &&
+                    !filters.onlyDupes &&
+                    !filters.onlyEmpty)
               )
               .filter((e) =>
                 (
-                  Object.keys(filters) as (keyof LocalizationWithBaseType)[]
+                  Object.keys(filters).filter(
+                    (k) => !k.startsWith("only")
+                  ) as (keyof LocalizationWithBaseType)[]
                 ).every(
                   (key) =>
                     !filters[key] ||
                     (typeof e[key] === "string" &&
-                      filters[key].test(e[key] as string))
+                      (filters[key] as RegExp).test(e[key] as string))
                 )
               )
           )
@@ -470,5 +516,14 @@ export class AppComponent implements AfterViewInit {
 
   blockAPI(event: MatSlideToggleChange) {
     this.config.blockAPI(event.checked);
+  }
+
+  clearAllFilters() {
+    this.filters.setValue(
+      Object.keys(this.filters.value).reduce(
+        (acc, key) => ({ ...acc, [key]: null }),
+        {}
+      )
+    );
   }
 }
