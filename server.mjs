@@ -178,23 +178,51 @@ app.get("/localizations/:locale/:key", (req, res, next) => {
 });
 
 app.get("/list", (req, res) => {
+  const config = getConfig();
+
   let links;
 
   switch (req.query.query) {
+    case "combinations":
+      if (!Object.keys(config.combinations || {}).length) {
+        return res.status(400).send("No combinations are configured.");
+      }
     case "all":
-      if (!getConfig()?.themes?.length) {
+      if (!config.themes?.length) {
         return res.status(400).send("No themes are configured.");
       }
     default:
-      if (!getConfig()?.locales?.length) {
+      if (!config.locales?.length) {
         return res.status(400).send("No locales are configured.");
       }
   }
 
+  const url = (id) =>
+    `${req.protocol}://${req.get("host")}/localizations/${id}?unblocked=true`;
+
   switch (req.query.query) {
+    case "combinations":
+      const combinations = _.flattenDeep(
+        Object.values(config.combinations).map((c) =>
+          Object.entries(c).map(([locale, themes]) =>
+            themes.map((theme) => ({ locale, theme }))
+          )
+        )
+      );
+
+      links = _.sortBy(
+        combinations.map(({ locale, theme }) => ({
+          locale,
+          theme,
+          id: `${locale}_${theme}`,
+          url: url(`${locale}_${theme}`),
+        })),
+        "id"
+      );
+      break;
     case "all":
-      const locales = [...getConfig()?.locales].sort();
-      const themes = [...getConfig()?.themes].sort();
+      const locales = [...config.locales].sort();
+      const themes = [...config.themes].sort();
 
       links = _.flatten(
         locales.map((lang) => themes.map((theme) => [lang, theme]))
@@ -202,28 +230,16 @@ app.get("/list", (req, res) => {
         locale,
         theme,
         id: `${locale}_${theme}`,
-        url: `${req.protocol}://${req.get(
-          "host"
-        )}/localizations/${locale}_${theme}?unblocked=true`,
+        url: url(`${locale}_${theme}`),
       }));
       break;
 
     case "locale":
-      links = [...getConfig()?.locales].sort().map((id) => ({
-        id,
-        url: `${req.protocol}://${req.get(
-          "host"
-        )}/localizations/${id}?unblocked=true`,
-      }));
+      links = [...config.locales].sort().map((id) => ({ id, url: url(id) }));
       break;
 
     default:
-      links = [...getConfig()?.languages].sort().map((id) => ({
-        id,
-        url: `${req.protocol}://${req.get(
-          "host"
-        )}/localizations/${id}?unblocked=true`,
-      }));
+      links = [...config.languages].sort().map((id) => ({ id, url: url(id) }));
       break;
   }
 

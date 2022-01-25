@@ -33,6 +33,24 @@ describe("Server List", () => {
     });
     expect(baseLangRes.status).toEqual(204);
 
+    const combinationsRes = await axios.put("/config/combinations", {
+      en: {
+        en_US: ["b2c", "b2b"],
+      },
+      de: {
+        de_DE: ["b2c", "b2b"],
+        de_AT: ["b2c"],
+      },
+      fr: {
+        fr_FR: ["b2c", "b2b"],
+        fr_BE: ["b2c"],
+      },
+      es: {
+        es_ES: ["b2c"],
+      },
+    });
+    expect(combinationsRes.status).toEqual(204);
+
     for (const lang of ["en", "de", "fr", "es"]) {
       const res = await axios.post("/import", initialData, {
         params: {
@@ -148,6 +166,81 @@ describe("Server List", () => {
     });
   });
 
+  describe("combinations query", () => {
+    let listResponse;
+
+    it("should return all locale X theme links respecting supplied combinations in the list response", async () => {
+      listResponse = await axios.get("/list?query=combinations");
+      expect(listResponse.status).toEqual(200);
+      expect(listResponse.data).toMatchInlineSnapshot(`
+        Array [
+          Object {
+            "id": "de_AT_b2c",
+            "locale": "de_AT",
+            "theme": "b2c",
+            "url": "http://localhost:8001/localizations/de_AT_b2c?unblocked=true",
+          },
+          Object {
+            "id": "de_DE_b2b",
+            "locale": "de_DE",
+            "theme": "b2b",
+            "url": "http://localhost:8001/localizations/de_DE_b2b?unblocked=true",
+          },
+          Object {
+            "id": "de_DE_b2c",
+            "locale": "de_DE",
+            "theme": "b2c",
+            "url": "http://localhost:8001/localizations/de_DE_b2c?unblocked=true",
+          },
+          Object {
+            "id": "en_US_b2b",
+            "locale": "en_US",
+            "theme": "b2b",
+            "url": "http://localhost:8001/localizations/en_US_b2b?unblocked=true",
+          },
+          Object {
+            "id": "en_US_b2c",
+            "locale": "en_US",
+            "theme": "b2c",
+            "url": "http://localhost:8001/localizations/en_US_b2c?unblocked=true",
+          },
+          Object {
+            "id": "es_ES_b2c",
+            "locale": "es_ES",
+            "theme": "b2c",
+            "url": "http://localhost:8001/localizations/es_ES_b2c?unblocked=true",
+          },
+          Object {
+            "id": "fr_BE_b2c",
+            "locale": "fr_BE",
+            "theme": "b2c",
+            "url": "http://localhost:8001/localizations/fr_BE_b2c?unblocked=true",
+          },
+          Object {
+            "id": "fr_FR_b2b",
+            "locale": "fr_FR",
+            "theme": "b2b",
+            "url": "http://localhost:8001/localizations/fr_FR_b2b?unblocked=true",
+          },
+          Object {
+            "id": "fr_FR_b2c",
+            "locale": "fr_FR",
+            "theme": "b2c",
+            "url": "http://localhost:8001/localizations/fr_FR_b2c?unblocked=true",
+          },
+        ]
+      `);
+    });
+
+    it("should return localization data for every list entry", async () => {
+      for (const item of listResponse.data) {
+        const tr = await axios.get(item.url);
+        expect(tr.status).toEqual(200);
+        expect(tr.data).toEqual(initialData);
+      }
+    });
+  });
+
   describe("locale query", () => {
     let listResponse;
 
@@ -227,6 +320,34 @@ describe("Server List", () => {
         expect(tr.status).toEqual(200);
         expect(tr.data).toEqual(initialData);
       }
+    });
+  });
+
+  describe("if no combinations are configured", () => {
+    beforeAll(async () => {
+      const res = await axios.put("/config/combinations", {});
+      expect(res.status).toEqual(204);
+    });
+
+    it("should report an error when retrieving combination entries", async () => {
+      const res = await axios.get("/list?query=combinations");
+      expect(res.data).toEqual("No combinations are configured.");
+      expect(res.status).toEqual(400);
+    });
+
+    it("should not report an error when retrieving all entries", async () => {
+      const res = await axios.get("/list?query=all");
+      expect(res.status).toEqual(200);
+    });
+
+    it("should not report an error when retrieving all locales", async () => {
+      const res = await axios.get("/list?query=locale");
+      expect(res.status).toEqual(200);
+    });
+
+    it("should not report an error for default query", async () => {
+      const res = await axios.get("/list");
+      expect(res.status).toEqual(200);
     });
   });
 
