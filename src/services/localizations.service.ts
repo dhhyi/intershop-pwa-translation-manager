@@ -11,9 +11,9 @@ export interface LocalizationWithBaseType {
   key: string;
   base: string;
   tr: string;
-  missing: boolean;
-  dupe: boolean;
-  ignored: boolean;
+  missing?: boolean;
+  dupe?: boolean;
+  ignored?: boolean;
 }
 
 @Injectable({ providedIn: "root" })
@@ -62,7 +62,7 @@ export class LocalizationsService {
       this.config.select("ignored").pipe(map((x) => x || [])),
     ]).pipe(
       map(([base, loc, ignored]) =>
-        Object.keys(base).map((key) => ({
+        Object.keys(base).map<LocalizationWithBaseType>((key) => ({
           key,
           base: this.convertToString(base[key]),
           tr: this.convertToString(loc[key]),

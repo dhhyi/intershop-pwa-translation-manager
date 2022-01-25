@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, ViewChild } from "@angular/core";
-import { FormBuilder } from "@angular/forms";
+import { FormBuilder, FormControl } from "@angular/forms";
 import { MatDialog, MatDialogRef } from "@angular/material/dialog";
 import { MatPaginator, PageEvent } from "@angular/material/paginator";
 import { MatSlideToggleChange } from "@angular/material/slide-toggle";
@@ -29,6 +29,7 @@ import {
 } from "rxjs/operators";
 
 import { ConfigService } from "../services/config.service";
+import { Filters, filterTranslations } from "../services/filters";
 import {
   LocalizationsService,
   LocalizationWithBaseType,
@@ -85,17 +86,17 @@ import { UploadDialogComponent } from "./upload-dialog.component";
             <span>Clear Filters</span>
           </a>
           <div mat-menu-item>
-            <mat-slide-toggle [formControl]="$any(filters.controls.onlyMissing)"
+            <mat-slide-toggle [formControl]="filters.controls.onlyMissing"
               >Missing</mat-slide-toggle
             >
           </div>
           <div mat-menu-item>
-            <mat-slide-toggle [formControl]="$any(filters.controls.onlyDupes)"
+            <mat-slide-toggle [formControl]="filters.controls.onlyDupes"
               >Dupes</mat-slide-toggle
             >
           </div>
           <div mat-menu-item>
-            <mat-slide-toggle [formControl]="$any(filters.controls.onlyEmpty)"
+            <mat-slide-toggle [formControl]="filters.controls.onlyEmpty"
               >Empty</mat-slide-toggle
             >
           </div>
@@ -155,7 +156,7 @@ import { UploadDialogComponent } from "./upload-dialog.component";
                       <input
                         matInput
                         type="text"
-                        [formControl]="$any(filters.get(column.id))"
+                        [formControl]="filters.get(column.id)"
                       />
                       <button
                         *ngIf="filters.get(column.id).valueChanges | async"
@@ -298,7 +299,13 @@ export class AppComponent implements AfterViewInit {
     onlyMissing: this.fb.control(undefined),
     onlyDupes: this.fb.control(undefined),
     onlyEmpty: this.fb.control(undefined),
-  });
+  }) as unknown as {
+    controls: Record<keyof Filters, FormControl>;
+    value: Filters;
+    valueChanges: Observable<Filters>;
+    get: (id: string) => FormControl;
+    setValue: (value: Filters) => void;
+  };
 
   filtersActive$: Observable<boolean>;
 
@@ -379,32 +386,7 @@ export class AppComponent implements AfterViewInit {
     switchMap(([lang, filters]) =>
       this.service
         .localizationsWithBase$(lang)
-        .pipe(
-          map((array) =>
-            array
-              .filter(
-                (e) =>
-                  (filters.onlyMissing === true && e.missing) ||
-                  (filters.onlyDupes === true && e.dupe) ||
-                  (filters.onlyEmpty === true && e.tr?.trim() === "") ||
-                  (!filters.onlyMissing &&
-                    !filters.onlyDupes &&
-                    !filters.onlyEmpty)
-              )
-              .filter((e) =>
-                (
-                  Object.keys(filters).filter(
-                    (k) => !k.startsWith("only")
-                  ) as (keyof LocalizationWithBaseType)[]
-                ).every(
-                  (key) =>
-                    !filters[key] ||
-                    (typeof e[key] === "string" &&
-                      (filters[key] as RegExp).test(e[key] as string))
-                )
-              )
-          )
-        )
+        .pipe(map((array) => filterTranslations(array, filters)))
     ),
     shareReplay(1)
   );
