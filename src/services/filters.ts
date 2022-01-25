@@ -8,8 +8,13 @@ export type Filters = Partial<
     onlyMissing: boolean;
     onlyDupes: boolean;
     onlyEmpty: boolean;
+    onlyComplex: boolean;
   }
 >;
+
+function containsComplex(v: string) {
+  return /\{\{(\s*\w+\s*,)?\s*(translate|plural|select)/.test(v);
+}
 
 export function filterTranslations(
   translations: LocalizationWithBaseType[],
@@ -21,7 +26,12 @@ export function filterTranslations(
         (filters.onlyMissing === true && e.missing) ||
         (filters.onlyDupes === true && e.dupe) ||
         (filters.onlyEmpty === true && e.tr?.trim() === "") ||
-        (!filters.onlyMissing && !filters.onlyDupes && !filters.onlyEmpty)
+        (filters.onlyComplex === true &&
+          (containsComplex(e.base) || containsComplex(e.tr))) ||
+        (!filters.onlyMissing &&
+          !filters.onlyDupes &&
+          !filters.onlyEmpty &&
+          !filters.onlyComplex)
     )
     .filter(
       (e) =>

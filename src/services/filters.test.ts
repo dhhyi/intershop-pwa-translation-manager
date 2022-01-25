@@ -12,6 +12,22 @@ describe("Translation Filtering", () => {
     { key: "missing", base: "missing key", tr: undefined, missing: true },
     { key: "dupe", base: "dupe key", tr: "dupe key", dupe: true },
     { key: "empty", base: "empty key", tr: "" },
+    { key: "variable", base: "{{ 0 }}", tr: "{{ 0 }}" },
+    {
+      key: "plural",
+      base: "{{o, plural, =1{one} other{more}}}",
+      tr: "{{o, plural, =1{eins} other{mehr}}}",
+    },
+    {
+      key: "select",
+      base: "{{o, select, =true{true} other{false}}}",
+      tr: "{{o, select, =true{wahr} other{falsch}}}",
+    },
+    {
+      key: "translate",
+      base: "{{translate, simple}}",
+      tr: "{{translate, simple}}",
+    },
   ];
 
   it("should return empty array for empty data", () => {
@@ -25,6 +41,10 @@ describe("Translation Filtering", () => {
         missing,
         dupe,
         empty,
+        variable,
+        plural,
+        select,
+        translate,
       ]
     `);
   });
@@ -52,6 +72,17 @@ describe("Translation Filtering", () => {
       .toMatchInlineSnapshot(`
       Array [
         dupe,
+      ]
+    `);
+  });
+
+  it("should return complex keys when filtering for it", () => {
+    expect(filterTranslations(data, { onlyComplex: true }))
+      .toMatchInlineSnapshot(`
+      Array [
+        plural,
+        select,
+        translate,
       ]
     `);
   });
