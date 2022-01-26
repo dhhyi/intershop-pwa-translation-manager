@@ -143,38 +143,81 @@ app.get(/.*(html|css|js|ico)$/, express.static("dist"));
 
 app.use(cors());
 
-app.get("/localizations/:locale", (req, res, next) => {
-  if (req.params.locale === "config") {
-    next();
+function parseID(input) {
+  const split = input?.replace(".json", "")?.split(/[^a-zA-Z0-9]+/);
+
+  const config = getConfig();
+
+  let id;
+  let error;
+  let path = [];
+  const lang = split[0]?.toLowerCase();
+
+  if (!(config.languages || []).includes(lang)) {
+    error = "Language " + lang + " is not configured.";
   } else {
-    let lang;
-    if (req.query.exact !== "true") {
-      if (req.query.unblocked !== "true" && blockList.includes(req.ip)) {
-        res.send({});
+    id = lang;
+    path.push(lang);
+
+    const country = split[1]?.toUpperCase();
+
+    if (country) {
+      const locale = `${lang}_${country}`;
+
+      if (!(config.locales || []).includes(locale)) {
+        error = "Locale " + locale + " is not configured.";
       } else {
-        lang = req.params.locale.replace(".json", "");
-        const regex = /([a-z]{2})_[A-Z]{2}/;
-        if (!localizations.data[lang] && regex.test(lang)) {
-          lang = regex.exec(lang)[1];
+        id += "_" + country;
+        path.push(locale);
+
+        const theme = split[2]?.toLowerCase();
+        if (theme && !(config.themes || []).includes(theme)) {
+          error = "Theme " + theme + " is not configured.";
+        } else if (theme) {
+          id += "-" + theme;
+          path.push(id);
         }
-        return res.send(localizations.data[lang] || {});
       }
-    } else {
-      return res.send(localizations.data[req.params.locale] || {});
     }
   }
+
+  return { id, error, path };
+}
+
+function getLocalizations(parsed, req) {
+  if (req.query.unblocked !== "true" && blockList.includes(req.ip)) {
+    res.send({});
+  } else {
+    if (req.query.exact === "true") {
+      return localizations.data[parsed.id] || {};
+    } else {
+      return parsed.path
+        .map((id) => localizations.data[id] || {})
+        .reduce((acc, val) => ({ ...acc, ...val }), {});
+    }
+  }
+}
+
+app.get("/localizations/:locale", (req, res) => {
+  const parsed = parseID(req.params.locale);
+  if (parsed.error) {
+    return res.status(400).send(parsed.error);
+  }
+
+  res.send(getLocalizations(parsed, req));
 });
 
-app.get("/localizations/:locale/:key", (req, res, next) => {
-  if (req.params.locale === "config") {
-    next();
-  } else {
-    const data = localizations.data[req.params.locale]?.[req.params.key];
-    if (data) {
-      return res.set("content-type", "text/plain").send(data);
-    }
-    return res.sendStatus(404);
+app.get("/localizations/:locale/:key", (req, res) => {
+  const parsed = parseID(req.params.locale);
+  if (parsed.error) {
+    return res.status(400).send(parsed.error);
   }
+
+  const data = getLocalizations(parsed, req)[req.params.key];
+  if (data) {
+    return res.set("content-type", "text/plain").send(data);
+  }
+  return res.sendStatus(404);
 });
 
 app.get("/list", (req, res) => {
@@ -278,22 +321,37 @@ function assertFormat(req, res, ...formats) {
 
 app.put("/localizations/:locale/:key", async (req, res) => {
   if (assertFormat(req, res, "text/plain")) {
-    if (!localizations.data[req.params.locale]) {
-      localizations.data[req.params.locale] = {};
+    const parsed = parseID(req.params.locale);
+    if (parsed.error) {
+      return res.status(400).send(parsed.error);
     }
-    console.log("set", req.params.locale, req.params.key, "=", req.body);
-    localizations.data[req.params.locale][req.params.key] = req.body;
+    if (!localizations.data[parsed.id]) {
+      localizations.data[parsed.id] = {};
+    }
+    const key = req.params.key;
+    const body = req.body;
+
+    console.log("set", parsed.id, key, "=", body);
+    localizations.data[parsed.id][key] = body;
+
     await localizations.write();
     return res.sendStatus(204);
   }
 });
 
 app.delete("/localizations/:locale/:key", async (req, res) => {
-  if (!localizations.data[req.params.locale]) {
-    localizations.data[req.params.locale] = {};
+  const parsed = parseID(req.params.locale);
+  if (parsed.error) {
+    return res.status(400).send(parsed.error);
   }
-  console.log("delete", req.params.locale, req.params.key);
-  localizations.data[req.params.locale][req.params.key] = undefined;
+  if (!localizations.data[parsed.id]) {
+    localizations.data[parsed.id] = {};
+  }
+  const key = req.params.key;
+
+  console.log("delete", parsed.id, key);
+  localizations.data[parsed.id][key] = undefined;
+
   await localizations.write();
   return res.sendStatus(204);
 });

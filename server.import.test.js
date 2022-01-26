@@ -8,6 +8,11 @@ axios.interceptors.response.use(
 );
 
 describe("Server Import", () => {
+  beforeAll(async () => {
+    const config = await axios.put("/config/locales", ["de_DE"]);
+    expect(config.status).toEqual(204);
+  });
+
   describe("expected errors", () => {
     it("should respond with 400 if locale query param is missing", async () => {
       const res = await axios.post("/import?type=replace", { foo: "test" });

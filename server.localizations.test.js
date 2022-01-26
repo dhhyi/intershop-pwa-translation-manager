@@ -14,15 +14,27 @@ describe("Server Localizations", () => {
   };
 
   beforeAll(async () => {
-    const res = await axios.post("/import", initialData, {
+    const config = await axios.put("/config/locales", ["fr_FR"]);
+    expect(config.status).toEqual(204);
+
+    const lang = await axios.post("/import", initialData, {
       params: {
         locale: "fr",
         type: "replace",
       },
     });
 
-    expect(res.data).toEqual("Imported 2 keys.");
-    expect(res.status).toEqual(200);
+    expect(lang.data).toEqual("Imported 2 keys.");
+    expect(lang.status).toEqual(200);
+
+    const locale = await axios.delete("/import", {
+      params: {
+        locale: "fr_FR",
+      },
+    });
+
+    expect(locale.data).toEqual("Deleted all keys.");
+    expect(locale.status).toEqual(200);
   });
 
   afterAll(async () => {
@@ -32,15 +44,21 @@ describe("Server Localizations", () => {
     expect(res.status).toEqual(200);
   });
 
-  it.each(["fr", "fr_FR", "fr.json", "fr_FR.json"])(
-    "should have the imported translations for request '%s'",
-    async (req) => {
-      const res = await axios.get("/localizations/" + req);
-      expect(res.status).toEqual(200);
-      expect(res.data).toEqual(initialData);
-      expect(res.headers["content-type"]).toStartWith("application/json");
-    }
-  );
+  it.each([
+    "fr",
+    "fr_FR",
+    "fr-FR",
+    "fr-fr",
+    "FR-FR",
+    "fr.json",
+    "fr_FR.json",
+    "fr-FR.json",
+  ])("should have the imported translations for request '%s'", async (req) => {
+    const res = await axios.get("/localizations/" + req);
+    expect(res.status).toEqual(200);
+    expect(res.data).toEqual(initialData);
+    expect(res.headers["content-type"]).toStartWith("application/json");
+  });
 
   it("should return the data for detail requests", async () => {
     const res = await axios.get("/localizations/fr/foo");
@@ -114,6 +132,40 @@ describe("Server Localizations", () => {
       const res = await axios.get("/localizations/fr");
       expect(res.status).toEqual(200);
       expect(res.data.bar).toBeUndefined();
+    });
+  });
+
+  describe("when overriding a key in a locale", () => {
+    it("should return 204", async () => {
+      const res = await axios.put("/localizations/fr_FR/foo", "override", {
+        headers: { "content-type": "text/plain" },
+      });
+      expect(res.data).toBeEmpty();
+      expect(res.status).toEqual(204);
+    });
+
+    it("should have the override value in the locale detail response", async () => {
+      const res = await axios.get("/localizations/fr_FR/foo");
+      expect(res.status).toEqual(200);
+      expect(res.data).toEqual("override");
+    });
+
+    it("should have the override value in the locale response", async () => {
+      const res = await axios.get("/localizations/fr_FR");
+      expect(res.status).toEqual(200);
+      expect(res.data.foo).toEqual("override");
+    });
+
+    it("should have the original value in the language detail response", async () => {
+      const res = await axios.get("/localizations/fr/foo");
+      expect(res.status).toEqual(200);
+      expect(res.data).toEqual("changed");
+    });
+
+    it("should have the original value in the language response", async () => {
+      const res = await axios.get("/localizations/fr");
+      expect(res.status).toEqual(200);
+      expect(res.data.foo).toEqual("changed");
     });
   });
 });
