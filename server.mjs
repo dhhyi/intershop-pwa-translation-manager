@@ -216,8 +216,8 @@ function getLocalizations(parsed, req) {
   }
 }
 
-app.get("/localizations/:locale", (req, res) => {
-  const parsed = parseID(req.params.locale);
+app.get("/localizations/:id", (req, res) => {
+  const parsed = parseID(req.params.id);
   if (parsed.error) {
     return res.status(400).send(parsed.error);
   }
@@ -225,8 +225,8 @@ app.get("/localizations/:locale", (req, res) => {
   res.send(getLocalizations(parsed, req));
 });
 
-app.get("/localizations/:locale/:key", (req, res) => {
-  const parsed = parseID(req.params.locale);
+app.get("/localizations/:id/:key", (req, res) => {
+  const parsed = parseID(req.params.id);
   if (parsed.error) {
     return res.status(400).send(parsed.error);
   }
@@ -337,9 +337,9 @@ function assertFormat(req, res, ...formats) {
 
 // <DB>
 
-app.put("/localizations/:locale/:key", async (req, res) => {
+app.put("/localizations/:id/:key", async (req, res) => {
   if (assertFormat(req, res, "text/plain")) {
-    const parsed = parseID(req.params.locale);
+    const parsed = parseID(req.params.id);
     if (parsed.error) {
       return res.status(400).send(parsed.error);
     }
@@ -357,8 +357,8 @@ app.put("/localizations/:locale/:key", async (req, res) => {
   }
 });
 
-app.delete("/localizations/:locale/:key", async (req, res) => {
-  const parsed = parseID(req.params.locale);
+app.delete("/localizations/:id/:key", async (req, res) => {
+  const parsed = parseID(req.params.id);
   if (parsed.error) {
     return res.status(400).send(parsed.error);
   }
@@ -378,11 +378,11 @@ app.delete("/localizations/:locale/:key", async (req, res) => {
 
 // <IMPORT>
 
-app.post("/import", async (req, res) => {
+app.post("/import/:id", async (req, res) => {
   if (assertFormat(req, res, "text/plain", "application/json")) {
-    const locale = req.query.locale;
-    if (!locale) {
-      return res.status(400).send("Query parameter 'locale' is required.");
+    const parsed = parseID(req.params.id);
+    if (parsed.error) {
+      return res.status(400).send(parsed.error);
     }
 
     const type = req.query.type;
@@ -435,32 +435,32 @@ app.post("/import", async (req, res) => {
         .send("Could not parse any data in the CSV or JSON content");
     }
 
-    if (!localizations.data[locale]) {
-      localizations.data[locale] = {};
+    if (!localizations.data[parsed.id]) {
+      localizations.data[parsed.id] = {};
     }
 
-    console.log("importing", req.query.locale, "with strategy", req.query.type);
+    console.log("importing", parsed.id, "with strategy", type);
 
     let message;
     switch (type) {
       case "replace":
-        localizations.data[locale] = data;
+        localizations.data[parsed.id] = data;
         message = `Imported ${Object.keys(data).length} keys.`;
         break;
 
       case "overwrite":
-        localizations.data[locale] = {
-          ...localizations.data[locale],
+        localizations.data[parsed.id] = {
+          ...localizations.data[parsed.id],
           ...data,
         };
         message = `Imported ${Object.keys(data).length} keys.`;
         break;
 
       case "add":
-        const originalKeys = Object.keys(localizations.data[locale]);
-        localizations.data[locale] = {
+        const originalKeys = Object.keys(localizations.data[parsed.id]);
+        localizations.data[parsed.id] = {
           ...data,
-          ...localizations.data[locale],
+          ...localizations.data[parsed.id],
         };
         message = `Imported ${
           Object.keys(data).filter((k) => !originalKeys.includes(k)).length
@@ -476,12 +476,13 @@ app.post("/import", async (req, res) => {
   }
 });
 
-app.delete("/import", async (req, res) => {
-  const locale = req.query.locale;
-  if (!locale) {
-    return res.status(400).send("Query parameter 'locale' is required.");
+app.delete("/import/:id", async (req, res) => {
+  const parsed = parseID(req.params.id);
+  if (parsed.error) {
+    return res.status(400).send(parsed.error);
   }
-  localizations.data[locale] = undefined;
+
+  localizations.data[parsed.id] = undefined;
   await localizations.write();
   return res.send(`Deleted all keys.`);
 });

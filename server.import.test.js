@@ -17,16 +17,8 @@ describe("Server Import", () => {
   });
 
   describe("expected errors", () => {
-    it("should respond with 400 if locale query param is missing", async () => {
-      const res = await axios.post("/import?type=replace", { foo: "test" });
-      expect(res.status).toEqual(400);
-      expect(res.data).toMatchInlineSnapshot(
-        `"Query parameter 'locale' is required."`
-      );
-    });
-
     it("should respond with 400 if type query param is missing", async () => {
-      const res = await axios.post("/import?locale=de", { foo: "test" });
+      const res = await axios.post("/import/de", { foo: "test" });
       expect(res.status).toEqual(400);
       expect(res.data).toMatchInlineSnapshot(
         `"Query parameter 'type' is required. Options: replace, overwrite, add"`
@@ -34,7 +26,7 @@ describe("Server Import", () => {
     });
 
     it("should respond with 400 if there aren't any keys in the payload", async () => {
-      const res = await axios.post("/import?locale=de&type=add", {});
+      const res = await axios.post("/import/de?type=add", {});
       expect(res.status).toEqual(400);
       expect(res.data).toMatchInlineSnapshot(
         `"Could not parse any data in the CSV or JSON content"`
@@ -44,7 +36,7 @@ describe("Server Import", () => {
 
   describe("when importing a language with replace", () => {
     it("should respond with 200", async () => {
-      const res = await axios.post("/import?locale=de&type=replace", {
+      const res = await axios.post("/import/de?type=replace", {
         foo: "test",
         bar: "test",
       });
@@ -66,7 +58,7 @@ describe("Server Import", () => {
 
   describe("when importing a language with overwrite", () => {
     it("should respond with 200", async () => {
-      const res = await axios.post("/import?locale=de&type=overwrite", {
+      const res = await axios.post("/import/de?type=overwrite", {
         bar: "test2",
         foobar: "test2",
       });
@@ -89,7 +81,7 @@ describe("Server Import", () => {
 
   describe("when importing a language with add", () => {
     it("should respond with 200", async () => {
-      const res = await axios.post("/import?locale=de&type=add", {
+      const res = await axios.post("/import/de?type=add", {
         bar: "test3",
         foobar: "test3",
         test: "test3",
@@ -115,7 +107,7 @@ describe("Server Import", () => {
   describe("when using textual JSON for the import", () => {
     it("should respond with 200", async () => {
       const res = await axios.post(
-        "/import?locale=de&type=replace",
+        "/import/de?type=replace",
         JSON.stringify({
           foo: "json",
           bar: "json",
@@ -141,7 +133,7 @@ describe("Server Import", () => {
   describe("when using textual CSV for the import", () => {
     it("should respond with 200", async () => {
       const res = await axios.post(
-        "/import?locale=de&type=replace",
+        "/import/de?type=replace",
         `foo;;csv
 bar;;csv
 `,
@@ -165,7 +157,7 @@ bar;;csv
 
   describe("when deleting a language", () => {
     it("should respond with 200", async () => {
-      const res = await axios.delete("/import?locale=de");
+      const res = await axios.delete("/import/de");
       expect(res.data).toEqual("Deleted all keys.");
       expect(res.status).toEqual(200);
       expect(res.data).toMatchInlineSnapshot(`"Deleted all keys."`);

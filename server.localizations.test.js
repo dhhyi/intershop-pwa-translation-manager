@@ -20,31 +20,10 @@ describe("Server Localizations", () => {
     const config = await axios.put("/config/locales", ["fr_FR"]);
     expect(config.status).toEqual(204);
 
-    const lang = await axios.post("/import", initialData, {
-      params: {
-        locale: "fr",
-        type: "replace",
-      },
-    });
+    const lang = await axios.post("/import/fr?type=replace", initialData);
 
     expect(lang.data).toEqual("Imported 2 keys.");
     expect(lang.status).toEqual(200);
-
-    const locale = await axios.delete("/import", {
-      params: {
-        locale: "fr_FR",
-      },
-    });
-
-    expect(locale.data).toEqual("Deleted all keys.");
-    expect(locale.status).toEqual(200);
-  });
-
-  afterAll(async () => {
-    const res = await axios.delete("/import?locale=fr");
-
-    expect(res.data).toEqual("Deleted all keys.");
-    expect(res.status).toEqual(200);
   });
 
   it.each([

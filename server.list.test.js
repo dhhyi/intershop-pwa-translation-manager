@@ -56,23 +56,13 @@ describe("Server List", () => {
     expect(combinationsRes.status).toEqual(204);
 
     for (const lang of ["en", "de", "fr", "es"]) {
-      const res = await axios.post("/import", initialData, {
+      const res = await axios.post("/import/" + lang, initialData, {
         params: {
-          locale: lang,
           type: "replace",
         },
       });
 
       expect(res.data).toEqual("Imported 2 keys.");
-      expect(res.status).toEqual(200);
-    }
-  });
-
-  afterAll(async () => {
-    for (const locale of ["en", "de", "fr", "es"]) {
-      const res = await axios.delete("/import?locale=" + locale);
-
-      expect(res.data).toEqual("Deleted all keys.");
       expect(res.status).toEqual(200);
     }
   });
