@@ -139,6 +139,24 @@ app.get(/.*(html|css|js|ico)$/, express.static("dist"));
 
 // </ANGULAR>
 
+// <TESTING>
+
+if (process.env.TESTING === "true") {
+  app.delete("/db", async (_, res) => {
+    console.log("DELETE DB");
+
+    config.data = {};
+    await config.write();
+
+    localizations.data = {};
+    await localizations.write();
+
+    return res.sendStatus(204);
+  });
+}
+
+// </TESTING>
+
 // <OPEN-DB>
 
 app.use(cors());

@@ -16,6 +16,9 @@ describe("Server List", () => {
   };
 
   beforeAll(async () => {
+    const deleteDB = await axios.delete("/db", {});
+    expect(deleteDB.status).toEqual(204);
+
     const languagesRes = await axios.put("/config/locales", [
       "en_US",
       "de_DE",
@@ -25,6 +28,7 @@ describe("Server List", () => {
       "es_ES",
     ]);
     expect(languagesRes.status).toEqual(204);
+
     const themesRes = await axios.put("/config/themes", ["b2b", "b2c"]);
     expect(themesRes.status).toEqual(204);
 

@@ -9,6 +9,9 @@ axios.interceptors.response.use(
 
 describe("Server Import", () => {
   beforeAll(async () => {
+    const deleteDB = await axios.delete("/db", {});
+    expect(deleteDB.status).toEqual(204);
+
     const config = await axios.put("/config/locales", ["de_DE"]);
     expect(config.status).toEqual(204);
   });

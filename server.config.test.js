@@ -10,7 +10,8 @@ axios.interceptors.response.use(
 
 describe("Server Config", () => {
   beforeAll(async () => {
-    await axios.post("/config", {});
+    const deleteDB = await axios.delete("/db", {});
+    expect(deleteDB.status).toEqual(204);
   });
 
   it("should start up", async () => {

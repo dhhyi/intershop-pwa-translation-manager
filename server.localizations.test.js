@@ -14,6 +14,9 @@ describe("Server Localizations", () => {
   };
 
   beforeAll(async () => {
+    const deleteDB = await axios.delete("/db", {});
+    expect(deleteDB.status).toEqual(204);
+
     const config = await axios.put("/config/locales", ["fr_FR"]);
     expect(config.status).toEqual(204);
 
