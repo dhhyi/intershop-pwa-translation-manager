@@ -258,8 +258,14 @@ app.get("/list", (req, res) => {
       }
   }
 
+  const newQuery = Object.entries(
+    _.omit({ unblocked: true, ...req.query }, "query")
+  )
+    .map(([k, v]) => `${k}=${v}`)
+    .join("&");
   const url = (id) =>
-    `${req.protocol}://${req.get("host")}/localizations/${id}?unblocked=true`;
+    `${req.protocol}://${req.get("host")}/localizations/${id}?${newQuery}`;
+  const id = (locale, theme) => `${locale}-${theme}`;
 
   switch (req.query.query) {
     case "combinations":
@@ -275,8 +281,8 @@ app.get("/list", (req, res) => {
         combinations.map(({ locale, theme }) => ({
           locale,
           theme,
-          id: `${locale}_${theme}`,
-          url: url(`${locale}_${theme}`),
+          id: id(locale, theme),
+          url: url(id(locale, theme)),
         })),
         "id"
       );
@@ -290,8 +296,8 @@ app.get("/list", (req, res) => {
       ).map(([locale, theme]) => ({
         locale,
         theme,
-        id: `${locale}_${theme}`,
-        url: url(`${locale}_${theme}`),
+        id: id(locale, theme),
+        url: url(id(locale, theme)),
       }));
       break;
 

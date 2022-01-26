@@ -76,76 +76,76 @@ describe("Server List", () => {
       expect(listResponse.data).toMatchInlineSnapshot(`
         Array [
           Object {
-            "id": "de_AT_b2b",
+            "id": "de_AT-b2b",
             "locale": "de_AT",
             "theme": "b2b",
-            "url": "http://localhost:8001/localizations/de_AT_b2b?unblocked=true",
+            "url": "http://localhost:8001/localizations/de_AT-b2b?unblocked=true",
           },
           Object {
-            "id": "de_AT_b2c",
+            "id": "de_AT-b2c",
             "locale": "de_AT",
             "theme": "b2c",
-            "url": "http://localhost:8001/localizations/de_AT_b2c?unblocked=true",
+            "url": "http://localhost:8001/localizations/de_AT-b2c?unblocked=true",
           },
           Object {
-            "id": "de_DE_b2b",
+            "id": "de_DE-b2b",
             "locale": "de_DE",
             "theme": "b2b",
-            "url": "http://localhost:8001/localizations/de_DE_b2b?unblocked=true",
+            "url": "http://localhost:8001/localizations/de_DE-b2b?unblocked=true",
           },
           Object {
-            "id": "de_DE_b2c",
+            "id": "de_DE-b2c",
             "locale": "de_DE",
             "theme": "b2c",
-            "url": "http://localhost:8001/localizations/de_DE_b2c?unblocked=true",
+            "url": "http://localhost:8001/localizations/de_DE-b2c?unblocked=true",
           },
           Object {
-            "id": "en_US_b2b",
+            "id": "en_US-b2b",
             "locale": "en_US",
             "theme": "b2b",
-            "url": "http://localhost:8001/localizations/en_US_b2b?unblocked=true",
+            "url": "http://localhost:8001/localizations/en_US-b2b?unblocked=true",
           },
           Object {
-            "id": "en_US_b2c",
+            "id": "en_US-b2c",
             "locale": "en_US",
             "theme": "b2c",
-            "url": "http://localhost:8001/localizations/en_US_b2c?unblocked=true",
+            "url": "http://localhost:8001/localizations/en_US-b2c?unblocked=true",
           },
           Object {
-            "id": "es_ES_b2b",
+            "id": "es_ES-b2b",
             "locale": "es_ES",
             "theme": "b2b",
-            "url": "http://localhost:8001/localizations/es_ES_b2b?unblocked=true",
+            "url": "http://localhost:8001/localizations/es_ES-b2b?unblocked=true",
           },
           Object {
-            "id": "es_ES_b2c",
+            "id": "es_ES-b2c",
             "locale": "es_ES",
             "theme": "b2c",
-            "url": "http://localhost:8001/localizations/es_ES_b2c?unblocked=true",
+            "url": "http://localhost:8001/localizations/es_ES-b2c?unblocked=true",
           },
           Object {
-            "id": "fr_BE_b2b",
+            "id": "fr_BE-b2b",
             "locale": "fr_BE",
             "theme": "b2b",
-            "url": "http://localhost:8001/localizations/fr_BE_b2b?unblocked=true",
+            "url": "http://localhost:8001/localizations/fr_BE-b2b?unblocked=true",
           },
           Object {
-            "id": "fr_BE_b2c",
+            "id": "fr_BE-b2c",
             "locale": "fr_BE",
             "theme": "b2c",
-            "url": "http://localhost:8001/localizations/fr_BE_b2c?unblocked=true",
+            "url": "http://localhost:8001/localizations/fr_BE-b2c?unblocked=true",
           },
           Object {
-            "id": "fr_FR_b2b",
+            "id": "fr_FR-b2b",
             "locale": "fr_FR",
             "theme": "b2b",
-            "url": "http://localhost:8001/localizations/fr_FR_b2b?unblocked=true",
+            "url": "http://localhost:8001/localizations/fr_FR-b2b?unblocked=true",
           },
           Object {
-            "id": "fr_FR_b2c",
+            "id": "fr_FR-b2c",
             "locale": "fr_FR",
             "theme": "b2c",
-            "url": "http://localhost:8001/localizations/fr_FR_b2c?unblocked=true",
+            "url": "http://localhost:8001/localizations/fr_FR-b2c?unblocked=true",
           },
         ]
       `);
@@ -169,58 +169,58 @@ describe("Server List", () => {
       expect(listResponse.data).toMatchInlineSnapshot(`
         Array [
           Object {
-            "id": "de_AT_b2c",
+            "id": "de_AT-b2c",
             "locale": "de_AT",
             "theme": "b2c",
-            "url": "http://localhost:8001/localizations/de_AT_b2c?unblocked=true",
+            "url": "http://localhost:8001/localizations/de_AT-b2c?unblocked=true",
           },
           Object {
-            "id": "de_DE_b2b",
+            "id": "de_DE-b2b",
             "locale": "de_DE",
             "theme": "b2b",
-            "url": "http://localhost:8001/localizations/de_DE_b2b?unblocked=true",
+            "url": "http://localhost:8001/localizations/de_DE-b2b?unblocked=true",
           },
           Object {
-            "id": "de_DE_b2c",
+            "id": "de_DE-b2c",
             "locale": "de_DE",
             "theme": "b2c",
-            "url": "http://localhost:8001/localizations/de_DE_b2c?unblocked=true",
+            "url": "http://localhost:8001/localizations/de_DE-b2c?unblocked=true",
           },
           Object {
-            "id": "en_US_b2b",
+            "id": "en_US-b2b",
             "locale": "en_US",
             "theme": "b2b",
-            "url": "http://localhost:8001/localizations/en_US_b2b?unblocked=true",
+            "url": "http://localhost:8001/localizations/en_US-b2b?unblocked=true",
           },
           Object {
-            "id": "en_US_b2c",
+            "id": "en_US-b2c",
             "locale": "en_US",
             "theme": "b2c",
-            "url": "http://localhost:8001/localizations/en_US_b2c?unblocked=true",
+            "url": "http://localhost:8001/localizations/en_US-b2c?unblocked=true",
           },
           Object {
-            "id": "es_ES_b2c",
+            "id": "es_ES-b2c",
             "locale": "es_ES",
             "theme": "b2c",
-            "url": "http://localhost:8001/localizations/es_ES_b2c?unblocked=true",
+            "url": "http://localhost:8001/localizations/es_ES-b2c?unblocked=true",
           },
           Object {
-            "id": "fr_BE_b2c",
+            "id": "fr_BE-b2c",
             "locale": "fr_BE",
             "theme": "b2c",
-            "url": "http://localhost:8001/localizations/fr_BE_b2c?unblocked=true",
+            "url": "http://localhost:8001/localizations/fr_BE-b2c?unblocked=true",
           },
           Object {
-            "id": "fr_FR_b2b",
+            "id": "fr_FR-b2b",
             "locale": "fr_FR",
             "theme": "b2b",
-            "url": "http://localhost:8001/localizations/fr_FR_b2b?unblocked=true",
+            "url": "http://localhost:8001/localizations/fr_FR-b2b?unblocked=true",
           },
           Object {
-            "id": "fr_FR_b2c",
+            "id": "fr_FR-b2c",
             "locale": "fr_FR",
             "theme": "b2c",
-            "url": "http://localhost:8001/localizations/fr_FR_b2c?unblocked=true",
+            "url": "http://localhost:8001/localizations/fr_FR-b2c?unblocked=true",
           },
         ]
       `);
@@ -314,6 +314,19 @@ describe("Server List", () => {
         expect(tr.status).toEqual(200);
         expect(tr.data).toEqual(initialData);
       }
+    });
+  });
+
+  describe("parameter handling", () => {
+    it("should include request parameters in follow up links", async () => {
+      const listResponse = await axios.get("/list?exact=true&foo=bar");
+      expect(listResponse.status).toEqual(200);
+
+      listResponse.data.forEach((link) => {
+        expect(link.url).toInclude("unblocked=true");
+        expect(link.url).toInclude("exact=true");
+        expect(link.url).toInclude("foo=bar");
+      });
     });
   });
 
