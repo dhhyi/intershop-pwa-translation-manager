@@ -161,45 +161,52 @@ if (process.env.TESTING === "true") {
 
 app.use(cors());
 
-function parseID(input) {
-  const split = input?.replace(".json", "")?.split(/[^a-zA-Z0-9]+/);
+const ID =
+  ":lang([a-zA-Z0-9]+)" +
+  ":div1([-_])?" +
+  ":country([a-zA-Z0-9]+)?" +
+  ":div2([-_\\/])?" +
+  ":theme([a-zA-Z0-9]+)?" +
+  "(.json)?";
+
+function parseID(params) {
+  const lang = params.lang?.toLowerCase();
+  const country = params.country?.toUpperCase();
+  const theme = params.theme?.toLowerCase();
 
   const config = getConfig();
 
-  let id;
-  let error;
-  let path = [];
-  const lang = split[0]?.toLowerCase();
-
   if (!(config.languages || []).includes(lang)) {
-    error = "Language " + lang + " is not configured.";
+    return { error: "Language " + lang + " is not configured." };
+  } else if (
+    country &&
+    !(config.locales || []).includes(`${lang}_${country}`)
+  ) {
+    return { error: "Locale " + locale + " is not configured." };
+  } else if (theme && !(config.themes || []).includes(theme)) {
+    return { error: "Theme " + theme + " is not configured." };
   } else {
-    id = lang;
-    path.push(lang);
-
-    const country = split[1]?.toUpperCase();
-
+    let id = lang;
     if (country) {
-      const locale = `${lang}_${country}`;
+      id += "_" + country;
+    }
+    if (theme) {
+      id += "-" + theme;
+    }
 
-      if (!(config.locales || []).includes(locale)) {
-        error = "Locale " + locale + " is not configured.";
-      } else {
-        id += "_" + country;
-        path.push(locale);
-
-        const theme = split[2]?.toLowerCase();
-        if (theme && !(config.themes || []).includes(theme)) {
-          error = "Theme " + theme + " is not configured.";
-        } else if (theme) {
-          id += "-" + theme;
-          path.push(id);
-        }
+    let path = [lang];
+    if (theme) {
+      path.push(`${lang}-${theme}`);
+    }
+    if (country) {
+      path.push(`${lang}_${country}`);
+      if (theme) {
+        path.push(`${lang}_${country}-${theme}`);
       }
     }
-  }
 
-  return { id, error, path };
+    return { id, path };
+  }
 }
 
 function getLocalizations(parsed, req) {
@@ -216,26 +223,31 @@ function getLocalizations(parsed, req) {
   }
 }
 
-app.get("/localizations/:id", (req, res) => {
-  const parsed = parseID(req.params.id);
+app.get(`/localizations/${ID}/:key`, (req, res, next) => {
+  const themes = getConfig(req).themes || [];
+  if (themes.includes(req.params.key.replace(/\.json$/, ""))) {
+    next();
+  } else {
+    const parsed = parseID(req.params);
+    if (parsed.error) {
+      return res.status(400).send(parsed.error);
+    }
+
+    const data = getLocalizations(parsed, req)[req.params.key];
+    if (data) {
+      return res.set("content-type", "text/plain").send(data);
+    }
+    return res.sendStatus(404);
+  }
+});
+
+app.get(`/localizations/${ID}`, (req, res) => {
+  const parsed = parseID(req.params);
   if (parsed.error) {
     return res.status(400).send(parsed.error);
   }
 
   res.send(getLocalizations(parsed, req));
-});
-
-app.get("/localizations/:id/:key", (req, res) => {
-  const parsed = parseID(req.params.id);
-  if (parsed.error) {
-    return res.status(400).send(parsed.error);
-  }
-
-  const data = getLocalizations(parsed, req)[req.params.key];
-  if (data) {
-    return res.set("content-type", "text/plain").send(data);
-  }
-  return res.sendStatus(404);
 });
 
 app.get("/list", (req, res) => {
@@ -343,9 +355,9 @@ function assertFormat(req, res, ...formats) {
 
 // <DB>
 
-app.put("/localizations/:id/:key", async (req, res) => {
+app.put(`/localizations/${ID}/:key`, async (req, res) => {
   if (assertFormat(req, res, "text/plain")) {
-    const parsed = parseID(req.params.id);
+    const parsed = parseID(req.params);
     if (parsed.error) {
       return res.status(400).send(parsed.error);
     }
@@ -363,8 +375,8 @@ app.put("/localizations/:id/:key", async (req, res) => {
   }
 });
 
-app.delete("/localizations/:id/:key", async (req, res) => {
-  const parsed = parseID(req.params.id);
+app.delete(`/localizations/${ID}/:key`, async (req, res) => {
+  const parsed = parseID(req.params);
   if (parsed.error) {
     return res.status(400).send(parsed.error);
   }
@@ -384,9 +396,9 @@ app.delete("/localizations/:id/:key", async (req, res) => {
 
 // <IMPORT>
 
-app.post("/import/:id", async (req, res) => {
+app.post(`/import/${ID}`, async (req, res) => {
   if (assertFormat(req, res, "text/plain", "application/json")) {
-    const parsed = parseID(req.params.id);
+    const parsed = parseID(req.params);
     if (parsed.error) {
       return res.status(400).send(parsed.error);
     }
@@ -482,8 +494,8 @@ app.post("/import/:id", async (req, res) => {
   }
 });
 
-app.delete("/import/:id", async (req, res) => {
-  const parsed = parseID(req.params.id);
+app.delete(`/import/${ID}`, async (req, res) => {
+  const parsed = parseID(req.params);
   if (parsed.error) {
     return res.status(400).send(parsed.error);
   }

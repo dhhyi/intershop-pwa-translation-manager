@@ -11,6 +11,7 @@ describe("Server Localizations", () => {
   const initialData = {
     foo: "test",
     bar: "test",
+    dummy: "test",
   };
 
   beforeAll(async () => {
@@ -20,25 +21,33 @@ describe("Server Localizations", () => {
     const config = await axios.put("/config/locales", ["fr_FR"]);
     expect(config.status).toEqual(204);
 
+    const themes = await axios.put("/config/themes", ["b2c"]);
+    expect(themes.status).toEqual(204);
+
     const lang = await axios.post("/import/fr?type=replace", initialData);
 
-    expect(lang.data).toEqual("Imported 2 keys.");
+    expect(lang.data).toEqual("Imported 3 keys.");
     expect(lang.status).toEqual(200);
   });
 
   it.each([
     "fr",
+    "fr/b2c",
     "fr_FR",
+    "fr_FR/b2c",
+    "fr_FR-b2c",
     "fr-FR",
     "fr-fr",
     "FR-FR",
     "fr.json",
+    "fr/b2c.json",
     "fr_FR.json",
     "fr-FR.json",
+    "fr_FR-b2c.json",
   ])("should have the imported translations for request '%s'", async (req) => {
     const res = await axios.get("/localizations/" + req);
-    expect(res.status).toEqual(200);
     expect(res.data).toEqual(initialData);
+    expect(res.status).toEqual(200);
     expect(res.headers["content-type"]).toStartWith("application/json");
   });
 
@@ -119,9 +128,13 @@ describe("Server Localizations", () => {
 
   describe("when overriding a key in a locale", () => {
     it("should return 204", async () => {
-      const res = await axios.put("/localizations/fr_FR/foo", "override", {
-        headers: { "content-type": "text/plain" },
-      });
+      const res = await axios.put(
+        "/localizations/fr_FR/foo",
+        "locale-override",
+        {
+          headers: { "content-type": "text/plain" },
+        }
+      );
       expect(res.data).toBeEmpty();
       expect(res.status).toEqual(204);
     });
@@ -129,13 +142,13 @@ describe("Server Localizations", () => {
     it("should have the override value in the locale detail response", async () => {
       const res = await axios.get("/localizations/fr_FR/foo");
       expect(res.status).toEqual(200);
-      expect(res.data).toEqual("override");
+      expect(res.data).toEqual("locale-override");
     });
 
     it("should have the override value in the locale response", async () => {
       const res = await axios.get("/localizations/fr_FR");
       expect(res.status).toEqual(200);
-      expect(res.data.foo).toEqual("override");
+      expect(res.data.foo).toEqual("locale-override");
     });
 
     it("should have the original value in the language detail response", async () => {
@@ -148,6 +161,95 @@ describe("Server Localizations", () => {
       const res = await axios.get("/localizations/fr");
       expect(res.status).toEqual(200);
       expect(res.data.foo).toEqual("changed");
+    });
+  });
+
+  describe("when overriding a key in a language theme", () => {
+    it("should return 204", async () => {
+      const res = await axios.put(
+        "/localizations/fr/b2c/dummy",
+        "theme-override",
+        {
+          headers: { "content-type": "text/plain" },
+        }
+      );
+      expect(res.data).toBeEmpty();
+      expect(res.status).toEqual(204);
+    });
+
+    it("should have the override value in the theme detail response", async () => {
+      const res = await axios.get("/localizations/fr/b2c/dummy");
+      expect(res.status).toEqual(200);
+      expect(res.data).toEqual("theme-override");
+    });
+
+    it("should have the override value in the theme response", async () => {
+      const res = await axios.get("/localizations/fr/b2c");
+      expect(res.status).toEqual(200);
+      expect(res.data.dummy).toEqual("theme-override");
+    });
+
+    it("should have the original value in the language detail response", async () => {
+      const res = await axios.get("/localizations/fr/dummy");
+      expect(res.status).toEqual(200);
+      expect(res.data).toEqual("test");
+    });
+
+    it("should have the original value in the language response", async () => {
+      const res = await axios.get("/localizations/fr");
+      expect(res.status).toEqual(200);
+      expect(res.data.dummy).toEqual("test");
+    });
+  });
+
+  describe("when overriding a key in locale and theme", () => {
+    it("should return 204", async () => {
+      const res1 = await axios.put(
+        "/localizations/fr-fr-b2c/dummy",
+        "theme-locale-override",
+        {
+          headers: { "content-type": "text/plain" },
+        }
+      );
+      expect(res1.data).toBeEmpty();
+      expect(res1.status).toEqual(204);
+
+      const res2 = await axios.put(
+        "/localizations/fr-fr/dummy",
+        "locale-override",
+        {
+          headers: { "content-type": "text/plain" },
+        }
+      );
+      expect(res2.data).toBeEmpty();
+      expect(res2.status).toEqual(204);
+
+      const res3 = await axios.put(
+        "/localizations/fr/b2c/dummy",
+        "theme-override",
+        {
+          headers: { "content-type": "text/plain" },
+        }
+      );
+      expect(res3.data).toBeEmpty();
+      expect(res3.status).toEqual(204);
+    });
+
+    it.each`
+      query          | value
+      ${"fr"}        | ${"test"}
+      ${"fr-fr"}     | ${"locale-override"}
+      ${"fr-FR"}     | ${"locale-override"}
+      ${"fr_FR"}     | ${"locale-override"}
+      ${"fr-fr-b2c"} | ${"theme-locale-override"}
+      ${"fr_FR-b2c"} | ${"theme-locale-override"}
+      ${"fr_FR/b2c"} | ${"theme-locale-override"}
+      ${"fr/b2c"}    | ${"theme-override"}
+      ${"FR/b2c"}    | ${"theme-override"}
+    `("should have value $value for query $query", async ({ query, value }) => {
+      const res = await axios.get(`/localizations/${query}/dummy`);
+      expect(res.status).toEqual(200);
+      expect(res.data).toEqual(value);
     });
   });
 });
