@@ -592,6 +592,13 @@ function checkConfigValue(key, value) {
       newCombinations[locale] = cts.sort();
     }
     return { value: newCombinations };
+  } else if (key === "baseLang") {
+    if (typeof value !== "string") {
+      return { error: `Could not set ${key}.` };
+    } else if (!/^[a-zA-Z]+$/.test(value)) {
+      return { error: `Could not set ${key}.` };
+    }
+    return { value: value.toLowerCase() };
   } else {
     return { value };
   }

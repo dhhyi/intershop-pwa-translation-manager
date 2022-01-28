@@ -358,6 +358,46 @@ describe("Server Config", () => {
       });
     });
 
+    describe("baseLang`", () => {
+      it("should set the baseLang when importing as string", async () => {
+        const baseLangRes = await axios.put("/config/baseLang", "en", {
+          headers: { "Content-Type": "text/plain" },
+        });
+        expect(baseLangRes.data).toBeEmpty();
+        expect(baseLangRes.status).toEqual(204);
+
+        const res = await axios.get("/config/baseLang");
+        expect(res.status).toEqual(200);
+        expect(res.data).toEqual("en");
+      });
+
+      it("should set the baseLang lower case", async () => {
+        const baseLangRes = await axios.put("/config/baseLang", "EN", {
+          headers: { "Content-Type": "text/plain" },
+        });
+        expect(baseLangRes.data).toBeEmpty();
+        expect(baseLangRes.status).toEqual(204);
+
+        const res = await axios.get("/config/baseLang");
+        expect(res.status).toEqual(200);
+        expect(res.data).toEqual("en");
+      });
+
+      it("should fail when the baseLang cannot be parsed as a language", async () => {
+        const baseLangRes = await axios.put("/config/baseLang", "123", {
+          headers: { "Content-Type": "text/plain" },
+        });
+        expect(baseLangRes.data).toEqual("Could not set baseLang.");
+        expect(baseLangRes.status).toEqual(400);
+      });
+
+      it("should fail when the baseLang cannot be parsed", async () => {
+        const baseLangRes = await axios.put("/config/baseLang", "true");
+        expect(baseLangRes.data).toEqual("Could not set baseLang.");
+        expect(baseLangRes.status).toEqual(400);
+      });
+    });
+
     describe("combinations", () => {
       beforeAll(async () => {
         expect(await axios.delete("/config/themes")).toHaveProperty(
