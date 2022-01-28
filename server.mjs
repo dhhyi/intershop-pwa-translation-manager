@@ -513,15 +513,6 @@ app.get("/config", (req, res) => {
   return res.send(getConfig(req));
 });
 
-app.post("/config", async (req, res) => {
-  if (assertFormat(req, res, "application/json")) {
-    config.data = req.body;
-    await config.write();
-    logConfig();
-    return res.sendStatus(204);
-  }
-});
-
 app.get("/config/:key", (req, res) => {
   const data = getConfig(req)[req.params.key];
   if (data === undefined) {
@@ -530,11 +521,85 @@ app.get("/config/:key", (req, res) => {
   return res.send(data);
 });
 
+function normalizeLocale(input) {
+  const match = /^([a-zA-Z]{2,3})[^a-zA-Z0-9]([a-zA-Z0-9]{2,3})$/.exec(input);
+  if (!match) {
+    return false;
+  }
+  return `${match[1].toLowerCase()}_${match[2].toUpperCase()}`;
+}
+
+function parseArray(input) {
+  return (
+    input &&
+    input
+      .split(/[,;]/)
+      .map((v) => v?.trim())
+      .filter((v) => !!v)
+  );
+}
+
+function checkConfigValue(key, value) {
+  if (key === "locales") {
+    let parsed = value;
+    if (typeof value === "string") {
+      parsed = parseArray(value);
+    } else if (!Array.isArray(value)) {
+      return { error: `Could not set ${key}.` };
+    }
+
+    const errors = [];
+    parsed = parsed.map((v) => {
+      const p = normalizeLocale(v);
+      if (!p) {
+        errors.push(`Cannot parse "${v}" as locale.`);
+      }
+      return p;
+    });
+    if (errors.length) {
+      return { error: "Could not set locales. " + errors.join(" ") };
+    }
+
+    return { value: parsed };
+  } else if (key === "themes") {
+    let parsed = value;
+    if (typeof value === "string") {
+      parsed = parseArray(value);
+    } else if (!Array.isArray(value)) {
+      return { error: `Could not set ${key}.` };
+    }
+
+    return { value: parsed };
+  } else {
+    return { value };
+  }
+}
+
+app.post("/config", async (req, res) => {
+  if (assertFormat(req, res, "application/json")) {
+    const newConfig = {};
+    for (const key in req.body) {
+      const value = req.body[key];
+      const parsed = checkConfigValue(key, value);
+      if (parsed.error) {
+        return res.status(400).send(parsed.error);
+      }
+      newConfig[key] = parsed.value;
+    }
+
+    config.data = newConfig;
+    await config.write();
+    logConfig();
+    return res.sendStatus(204);
+  }
+});
+
 app.put("/config/:key", async (req, res, next) => {
-  if (req.params.key === "block") {
+  const key = req.params.key;
+  if (key === "block") {
     blockList.add(req.ip);
     return res.sendStatus(204);
-  } else if (configReadOnlyFields.includes(req.params.key)) {
+  } else if (configReadOnlyFields.includes(key)) {
     next();
   } else {
     let value = req.body;
@@ -545,7 +610,13 @@ app.put("/config/:key", async (req, res, next) => {
         value = false;
       }
     }
-    await setConfigValue(req.params.key, value);
+
+    const parsed = checkConfigValue(key, value);
+    if (parsed.error) {
+      return res.status(400).send(parsed.error);
+    }
+
+    await setConfigValue(key, parsed.value);
     return res.sendStatus(204);
   }
 });

@@ -269,4 +269,93 @@ describe("Server Config", () => {
       });
     });
   });
+
+  describe("config validation", () => {
+    describe("locales", () => {
+      it("should set the locales to an array when importing as string", async () => {
+        const localesRes = await axios.put("/config/locales", "en_US,de_DE", {
+          headers: { "Content-Type": "text/plain" },
+        });
+        expect(localesRes.data).toBeEmpty();
+        expect(localesRes.status).toEqual(204);
+
+        const res = await axios.get("/config/locales");
+        expect(res.status).toEqual(200);
+        expect(res.data).toEqual(["en_US", "de_DE"]);
+      });
+
+      it("should set the locales to an array when importing as array", async () => {
+        const localesRes = await axios.put("/config/locales", [
+          "en_US",
+          "de_DE",
+        ]);
+        expect(localesRes.data).toBeEmpty();
+        expect(localesRes.status).toEqual(204);
+
+        const res = await axios.get("/config/locales");
+        expect(res.status).toEqual(200);
+        expect(res.data).toEqual(["en_US", "de_DE"]);
+      });
+
+      it("should fail when the locales cannot be parsed", async () => {
+        const localesRes = await axios.put("/config/locales", "true");
+        expect(localesRes.data).toEqual("Could not set locales.");
+        expect(localesRes.status).toEqual(400);
+      });
+
+      it("should fail when the locales are not locales", async () => {
+        const localesRes = await axios.put("/config/locales", "en,12345", {
+          headers: { "Content-Type": "text/plain" },
+        });
+        expect(localesRes.data).toEqual(
+          'Could not set locales. Cannot parse "en" as locale. Cannot parse "12345" as locale.'
+        );
+        expect(localesRes.status).toEqual(400);
+      });
+
+      it("should try to parse locales correctly", async () => {
+        const localesRes = await axios.put("/config/locales", [
+          "en-US",
+          "de_de",
+          "fr/fr",
+        ]);
+        expect(localesRes.data).toBeEmpty();
+        expect(localesRes.status).toEqual(204);
+
+        const res = await axios.get("/config/locales");
+        expect(res.status).toEqual(200);
+        expect(res.data).toEqual(["en_US", "de_DE", "fr_FR"]);
+      });
+    });
+
+    describe("themes", () => {
+      it("should set the themes to an array when importing as string", async () => {
+        const themesRes = await axios.put("/config/themes", "b2c,b2b", {
+          headers: { "Content-Type": "text/plain" },
+        });
+        expect(themesRes.data).toBeEmpty();
+        expect(themesRes.status).toEqual(204);
+
+        const res = await axios.get("/config/themes");
+        expect(res.status).toEqual(200);
+        expect(res.data).toEqual(["b2c", "b2b"]);
+      });
+
+      it("should set the themes to an array when importing as array", async () => {
+        const themesRes = await axios.put("/config/themes", ["b2c", "b2b"]);
+        expect(themesRes.data).toBeEmpty();
+        expect(themesRes.status).toEqual(204);
+
+        const res = await axios.get("/config/themes");
+        expect(res.status).toEqual(200);
+        expect(res.data).toEqual(["b2c", "b2b"]);
+      });
+
+      it("should fail when the themes cannot be parsed", async () => {
+        const themesRes = await axios.put("/config/themes", "true");
+        expect(themesRes.data).toEqual("Could not set themes.");
+        expect(themesRes.status).toEqual(400);
+      });
+    });
+  });
 });
