@@ -8,7 +8,10 @@ axios.interceptors.response.use(
 );
 
 describe("Server List", () => {
-  const baseLang = "en";
+  expect.addSnapshotSerializer({
+    test: (v) => typeof v?.id === "string" && typeof v?.url === "string",
+    print: (v) => `${v.id.padEnd(10, " ")} ${v.url}`,
+  });
 
   const initialData = {
     foo: "test",
@@ -19,40 +22,23 @@ describe("Server List", () => {
     const deleteDB = await axios.delete("/db", {});
     expect(deleteDB.status).toEqual(204);
 
-    const languagesRes = await axios.put("/config/locales", [
-      "en_US",
-      "de_DE",
-      "de_AT",
-      "fr_BE",
-      "fr_FR",
-      "es_ES",
-    ]);
-    expect(languagesRes.status).toEqual(204);
-
-    const themesRes = await axios.put("/config/themes", ["b2b", "b2c"]);
-    expect(themesRes.status).toEqual(204);
-
-    const baseLangRes = await axios.put("/config/baseLang", baseLang, {
-      headers: { "content-type": "text/plain" },
+    const configRes = await axios.post("/config", {
+      locales: ["en_US", "de_DE", "de_AT", "fr_BE", "fr_FR", "es_ES"],
+      themes: ["b2b", "b2c"],
+      baseLang: "en",
     });
-    expect(baseLangRes.status).toEqual(204);
+    expect(configRes.data).toBeEmpty();
+    expect(configRes.status).toEqual(204);
 
     const combinationsRes = await axios.put("/config/combinations", {
-      en: {
-        en_US: ["b2c", "b2b"],
-      },
-      de: {
-        de_DE: ["b2c", "b2b"],
-        de_AT: ["b2c"],
-      },
-      fr: {
-        fr_FR: ["b2c", "b2b"],
-        fr_BE: ["b2c"],
-      },
-      es: {
-        es_ES: ["b2c"],
-      },
+      en_US: ["b2c", "b2b"],
+      de_DE: ["b2c", "b2b"],
+      de_AT: ["b2c"],
+      fr_FR: ["b2c", "b2b"],
+      fr_BE: ["b2c"],
+      es_ES: ["b2c"],
     });
+    expect(combinationsRes.data).toBeEmpty();
     expect(combinationsRes.status).toEqual(204);
 
     for (const lang of ["en", "de", "fr", "es"]) {
@@ -67,99 +53,6 @@ describe("Server List", () => {
     }
   });
 
-  describe("all query", () => {
-    let listResponse;
-
-    it("should return all locale X theme links in the list response", async () => {
-      listResponse = await axios.get("/list?query=all");
-      expect(listResponse.status).toEqual(200);
-      expect(listResponse.data).toMatchInlineSnapshot(`
-        Array [
-          Object {
-            "id": "de_AT-b2b",
-            "locale": "de_AT",
-            "theme": "b2b",
-            "url": "http://localhost:8001/localizations/de_AT-b2b?unblocked=true",
-          },
-          Object {
-            "id": "de_AT-b2c",
-            "locale": "de_AT",
-            "theme": "b2c",
-            "url": "http://localhost:8001/localizations/de_AT-b2c?unblocked=true",
-          },
-          Object {
-            "id": "de_DE-b2b",
-            "locale": "de_DE",
-            "theme": "b2b",
-            "url": "http://localhost:8001/localizations/de_DE-b2b?unblocked=true",
-          },
-          Object {
-            "id": "de_DE-b2c",
-            "locale": "de_DE",
-            "theme": "b2c",
-            "url": "http://localhost:8001/localizations/de_DE-b2c?unblocked=true",
-          },
-          Object {
-            "id": "en_US-b2b",
-            "locale": "en_US",
-            "theme": "b2b",
-            "url": "http://localhost:8001/localizations/en_US-b2b?unblocked=true",
-          },
-          Object {
-            "id": "en_US-b2c",
-            "locale": "en_US",
-            "theme": "b2c",
-            "url": "http://localhost:8001/localizations/en_US-b2c?unblocked=true",
-          },
-          Object {
-            "id": "es_ES-b2b",
-            "locale": "es_ES",
-            "theme": "b2b",
-            "url": "http://localhost:8001/localizations/es_ES-b2b?unblocked=true",
-          },
-          Object {
-            "id": "es_ES-b2c",
-            "locale": "es_ES",
-            "theme": "b2c",
-            "url": "http://localhost:8001/localizations/es_ES-b2c?unblocked=true",
-          },
-          Object {
-            "id": "fr_BE-b2b",
-            "locale": "fr_BE",
-            "theme": "b2b",
-            "url": "http://localhost:8001/localizations/fr_BE-b2b?unblocked=true",
-          },
-          Object {
-            "id": "fr_BE-b2c",
-            "locale": "fr_BE",
-            "theme": "b2c",
-            "url": "http://localhost:8001/localizations/fr_BE-b2c?unblocked=true",
-          },
-          Object {
-            "id": "fr_FR-b2b",
-            "locale": "fr_FR",
-            "theme": "b2b",
-            "url": "http://localhost:8001/localizations/fr_FR-b2b?unblocked=true",
-          },
-          Object {
-            "id": "fr_FR-b2c",
-            "locale": "fr_FR",
-            "theme": "b2c",
-            "url": "http://localhost:8001/localizations/fr_FR-b2c?unblocked=true",
-          },
-        ]
-      `);
-    });
-
-    it("should return localization data for every list entry", async () => {
-      for (const item of listResponse.data) {
-        const tr = await axios.get(item.url);
-        expect(tr.status).toEqual(200);
-        expect(tr.data).toEqual(initialData);
-      }
-    });
-  });
-
   describe("combinations query", () => {
     let listResponse;
 
@@ -168,60 +61,32 @@ describe("Server List", () => {
       expect(listResponse.status).toEqual(200);
       expect(listResponse.data).toMatchInlineSnapshot(`
         Array [
-          Object {
-            "id": "de_AT-b2c",
-            "locale": "de_AT",
-            "theme": "b2c",
-            "url": "http://localhost:8001/localizations/de_AT-b2c?unblocked=true",
-          },
-          Object {
-            "id": "de_DE-b2b",
-            "locale": "de_DE",
-            "theme": "b2b",
-            "url": "http://localhost:8001/localizations/de_DE-b2b?unblocked=true",
-          },
-          Object {
-            "id": "de_DE-b2c",
-            "locale": "de_DE",
-            "theme": "b2c",
-            "url": "http://localhost:8001/localizations/de_DE-b2c?unblocked=true",
-          },
-          Object {
-            "id": "en_US-b2b",
-            "locale": "en_US",
-            "theme": "b2b",
-            "url": "http://localhost:8001/localizations/en_US-b2b?unblocked=true",
-          },
-          Object {
-            "id": "en_US-b2c",
-            "locale": "en_US",
-            "theme": "b2c",
-            "url": "http://localhost:8001/localizations/en_US-b2c?unblocked=true",
-          },
-          Object {
-            "id": "es_ES-b2c",
-            "locale": "es_ES",
-            "theme": "b2c",
-            "url": "http://localhost:8001/localizations/es_ES-b2c?unblocked=true",
-          },
-          Object {
-            "id": "fr_BE-b2c",
-            "locale": "fr_BE",
-            "theme": "b2c",
-            "url": "http://localhost:8001/localizations/fr_BE-b2c?unblocked=true",
-          },
-          Object {
-            "id": "fr_FR-b2b",
-            "locale": "fr_FR",
-            "theme": "b2b",
-            "url": "http://localhost:8001/localizations/fr_FR-b2b?unblocked=true",
-          },
-          Object {
-            "id": "fr_FR-b2c",
-            "locale": "fr_FR",
-            "theme": "b2c",
-            "url": "http://localhost:8001/localizations/fr_FR-b2c?unblocked=true",
-          },
+          de         http://localhost:8001/localizations/de?unblocked=true,
+          de-b2b     http://localhost:8001/localizations/de/b2b?unblocked=true,
+          de-b2c     http://localhost:8001/localizations/de/b2c?unblocked=true,
+          de_AT      http://localhost:8001/localizations/de_AT?unblocked=true,
+          de_AT-b2c  http://localhost:8001/localizations/de_AT/b2c?unblocked=true,
+          de_DE      http://localhost:8001/localizations/de_DE?unblocked=true,
+          de_DE-b2b  http://localhost:8001/localizations/de_DE/b2b?unblocked=true,
+          de_DE-b2c  http://localhost:8001/localizations/de_DE/b2c?unblocked=true,
+          en         http://localhost:8001/localizations/en?unblocked=true,
+          en-b2b     http://localhost:8001/localizations/en/b2b?unblocked=true,
+          en-b2c     http://localhost:8001/localizations/en/b2c?unblocked=true,
+          en_US      http://localhost:8001/localizations/en_US?unblocked=true,
+          en_US-b2b  http://localhost:8001/localizations/en_US/b2b?unblocked=true,
+          en_US-b2c  http://localhost:8001/localizations/en_US/b2c?unblocked=true,
+          es         http://localhost:8001/localizations/es?unblocked=true,
+          es-b2c     http://localhost:8001/localizations/es/b2c?unblocked=true,
+          es_ES      http://localhost:8001/localizations/es_ES?unblocked=true,
+          es_ES-b2c  http://localhost:8001/localizations/es_ES/b2c?unblocked=true,
+          fr         http://localhost:8001/localizations/fr?unblocked=true,
+          fr-b2b     http://localhost:8001/localizations/fr/b2b?unblocked=true,
+          fr-b2c     http://localhost:8001/localizations/fr/b2c?unblocked=true,
+          fr_BE      http://localhost:8001/localizations/fr_BE?unblocked=true,
+          fr_BE-b2c  http://localhost:8001/localizations/fr_BE/b2c?unblocked=true,
+          fr_FR      http://localhost:8001/localizations/fr_FR?unblocked=true,
+          fr_FR-b2b  http://localhost:8001/localizations/fr_FR/b2b?unblocked=true,
+          fr_FR-b2c  http://localhost:8001/localizations/fr_FR/b2c?unblocked=true,
         ]
       `);
     });
@@ -243,30 +108,12 @@ describe("Server List", () => {
       expect(listResponse.status).toEqual(200);
       expect(listResponse.data).toMatchInlineSnapshot(`
         Array [
-          Object {
-            "id": "de_AT",
-            "url": "http://localhost:8001/localizations/de_AT?unblocked=true",
-          },
-          Object {
-            "id": "de_DE",
-            "url": "http://localhost:8001/localizations/de_DE?unblocked=true",
-          },
-          Object {
-            "id": "en_US",
-            "url": "http://localhost:8001/localizations/en_US?unblocked=true",
-          },
-          Object {
-            "id": "es_ES",
-            "url": "http://localhost:8001/localizations/es_ES?unblocked=true",
-          },
-          Object {
-            "id": "fr_BE",
-            "url": "http://localhost:8001/localizations/fr_BE?unblocked=true",
-          },
-          Object {
-            "id": "fr_FR",
-            "url": "http://localhost:8001/localizations/fr_FR?unblocked=true",
-          },
+          de_AT      http://localhost:8001/localizations/de_AT?unblocked=true,
+          de_DE      http://localhost:8001/localizations/de_DE?unblocked=true,
+          en_US      http://localhost:8001/localizations/en_US?unblocked=true,
+          es_ES      http://localhost:8001/localizations/es_ES?unblocked=true,
+          fr_BE      http://localhost:8001/localizations/fr_BE?unblocked=true,
+          fr_FR      http://localhost:8001/localizations/fr_FR?unblocked=true,
         ]
       `);
     });
@@ -288,22 +135,10 @@ describe("Server List", () => {
       expect(listResponse.status).toEqual(200);
       expect(listResponse.data).toMatchInlineSnapshot(`
         Array [
-          Object {
-            "id": "de",
-            "url": "http://localhost:8001/localizations/de?unblocked=true",
-          },
-          Object {
-            "id": "en",
-            "url": "http://localhost:8001/localizations/en?unblocked=true",
-          },
-          Object {
-            "id": "es",
-            "url": "http://localhost:8001/localizations/es?unblocked=true",
-          },
-          Object {
-            "id": "fr",
-            "url": "http://localhost:8001/localizations/fr?unblocked=true",
-          },
+          de         http://localhost:8001/localizations/de?unblocked=true,
+          en         http://localhost:8001/localizations/en?unblocked=true,
+          es         http://localhost:8001/localizations/es?unblocked=true,
+          fr         http://localhost:8001/localizations/fr?unblocked=true,
         ]
       `);
     });

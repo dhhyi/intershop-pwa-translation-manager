@@ -275,42 +275,43 @@ app.get("/list", (req, res) => {
   )
     .map(([k, v]) => `${k}=${v}`)
     .join("&");
-  const url = (id) =>
-    `${req.protocol}://${req.get("host")}/localizations/${id}?${newQuery}`;
-  const id = (locale, theme) => `${locale}-${theme}`;
+  const url = (locale, theme) =>
+    `${req.protocol}://${req.get("host")}/localizations/${locale}${
+      theme ? "/" + theme : ""
+    }?${newQuery}`;
+  const id = (locale, theme) => `${locale}${theme ? "-" + theme : ""}`;
 
   switch (req.query.query) {
     case "combinations":
-      const combinations = _.flattenDeep(
-        Object.values(config.combinations).map((c) =>
-          Object.entries(c).map(([locale, themes]) =>
-            themes.map((theme) => ({ locale, theme }))
-          )
+      const combinations = _.flatten(
+        Object.entries(config.combinations).map(([locale, themes]) =>
+          themes.map((theme) => ({ locale, theme }))
         )
       );
 
+      combinations.push(
+        ...combinations
+          .map(({ locale, theme }) => ({
+            locale: /^[a-z]+/.exec(locale)[0],
+            theme,
+          }))
+          .filter(
+            ({ locale: l, theme: t }, i, a) =>
+              a.findIndex((v) => v.locale === l && v.theme === t) === i
+          )
+      );
+
+      combinations.push(...config.languages.map((locale) => ({ locale })));
+
+      combinations.push(...config.locales.map((locale) => ({ locale })));
+
       links = _.sortBy(
         combinations.map(({ locale, theme }) => ({
-          locale,
-          theme,
           id: id(locale, theme),
-          url: url(id(locale, theme)),
+          url: url(locale, theme),
         })),
         "id"
       );
-      break;
-    case "all":
-      const locales = [...config.locales].sort();
-      const themes = [...config.themes].sort();
-
-      links = _.flatten(
-        locales.map((lang) => themes.map((theme) => [lang, theme]))
-      ).map(([locale, theme]) => ({
-        locale,
-        theme,
-        id: id(locale, theme),
-        url: url(id(locale, theme)),
-      }));
       break;
 
     case "locale":
@@ -570,6 +571,27 @@ function checkConfigValue(key, value) {
     }
 
     return { value: parsed };
+  } else if (key === "combinations") {
+    const config = getConfig();
+    const locales = config.locales || [];
+    const themes = config.themes || [];
+
+    const newCombinations = {};
+
+    for (const [cl, cts] of Object.entries(value)) {
+      const locale = normalizeLocale(cl);
+      if (!locales.includes(locale)) {
+        return { error: `Locale "${cl}" is not configured.` };
+      }
+      for (const th of cts) {
+        if (!themes.includes(th)) {
+          return { error: `Theme "${th}" is not configured.` };
+        }
+      }
+
+      newCombinations[locale] = cts.sort();
+    }
+    return { value: newCombinations };
   } else {
     return { value };
   }

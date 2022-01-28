@@ -357,5 +357,65 @@ describe("Server Config", () => {
         expect(themesRes.status).toEqual(400);
       });
     });
+
+    describe("combinations", () => {
+      beforeAll(async () => {
+        expect(await axios.delete("/config/themes")).toHaveProperty(
+          "status",
+          204
+        );
+        expect(await axios.delete("/config/locales")).toHaveProperty(
+          "status",
+          204
+        );
+      });
+
+      const combinations = {
+        en_US: ["b2c"],
+        "fr-fr": ["b2c", "b2b"],
+      };
+
+      it("should fail importing combinations when locales are not found", async () => {
+        const combinationsRes = await axios.put(
+          "/config/combinations",
+          combinations
+        );
+        expect(combinationsRes.data).toEqual(
+          'Locale "en_US" is not configured.'
+        );
+        expect(combinationsRes.status).toEqual(400);
+      });
+
+      it("should fail importing combinations when themes are not found", async () => {
+        expect(
+          await axios.put("/config/locales", ["en-us", "fr-FR"])
+        ).toHaveProperty("status", 204);
+
+        const combinationsRes = await axios.put(
+          "/config/combinations",
+          combinations
+        );
+        expect(combinationsRes.data).toEqual('Theme "b2c" is not configured.');
+        expect(combinationsRes.status).toEqual(400);
+      });
+
+      it("should succeed importing combinations when everything is defined", async () => {
+        expect(
+          await axios.put("/config/themes", ["b2c", "b2b"])
+        ).toHaveProperty("status", 204);
+
+        const combinationsRes = await axios.put(
+          "/config/combinations",
+          combinations
+        );
+        expect(combinationsRes.data).toBeEmpty();
+        expect(combinationsRes.status).toEqual(204);
+
+        expect(await axios.get("/config/combinations")).toHaveProperty("data", {
+          en_US: ["b2c"],
+          fr_FR: ["b2b", "b2c"],
+        });
+      });
+    });
   });
 });
