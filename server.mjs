@@ -562,7 +562,7 @@ function checkConfigValue(key, value) {
     }
 
     return { value: parsed };
-  } else if (key === "themes") {
+  } else if (key === "themes" || key === "ignored") {
     let parsed = value;
     if (typeof value === "string") {
       parsed = parseArray(value);
