@@ -33,6 +33,8 @@ export class AuthInterceptor implements HttpInterceptor {
           const pass = window.prompt("Enter API password");
           this.apiPassword$.next(pass);
           sessionStorage.setItem("API_PASSWORD", pass);
+        } else if (err instanceof HttpErrorResponse && err.status === 0) {
+          this.notification.error("Backend unavailable");
         } else {
           this.notification.error(
             typeof err.error === "string" ? err.error : err.message
