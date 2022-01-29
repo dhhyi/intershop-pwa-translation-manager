@@ -247,6 +247,9 @@ import { UploadDialogComponent } from "./upload-dialog.component";
       .mat-menu-item > .ng-fa-icon {
         margin-right: 20px;
       }
+      .filters-active .ng-fa-icon {
+        color: blue;
+      }
 
       .mat-table {
         width: 100%;
