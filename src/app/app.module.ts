@@ -67,7 +67,9 @@ import { UploadDialogComponent } from "./upload-dialog.component";
     MatProgressSpinnerModule,
     MatRadioModule,
     MatSelectModule,
-    ToastrModule.forRoot(),
+    ToastrModule.forRoot({
+      preventDuplicates: true,
+    }),
     MatSlideToggleModule,
     MatMenuModule,
     MatExpansionModule,
