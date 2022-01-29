@@ -33,6 +33,7 @@ import { AuthInterceptor } from "../services/auth.interceptor";
 import { AppComponent } from "./app.component";
 import { ConfirmDialogComponent } from "./confirm-dialog.component";
 import { EditDialogComponent } from "./edit-dialog.component";
+import { TranslationTableComponent } from "./translation-table.component";
 import { UploadDialogComponent } from "./upload-dialog.component";
 
 @NgModule({
@@ -41,6 +42,7 @@ import { UploadDialogComponent } from "./upload-dialog.component";
     EditDialogComponent,
     ConfirmDialogComponent,
     UploadDialogComponent,
+    TranslationTableComponent,
   ],
   imports: [
     BrowserModule,
