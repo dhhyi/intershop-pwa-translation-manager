@@ -16,8 +16,8 @@
     "start:be": "cross-env DB_LOCATION=. onchange -ik server.mjs -- node server.mjs",
     "start:be:testing": "rimraf node_modules/.test && cross-env PORT=8001 DB_LOCATION=node_modules/.test TESTING=true onchange -ik server.mjs -- node server.mjs",
     "test": "npm-run-all test:*",
-    "test:be": "cross-env PORT=8001 SILENT=true TESTING=true start-server-and-test 'node server.mjs' 8001 'jest --testRegex \"server.*\\.test\\.js\"'",
-    "test:fe": "jest --testRegex \".*\\.test\\.ts\"",
+    "test:be": "cross-env PORT=8001 SILENT=true TESTING=true start-server-and-test 'node server.mjs' 8001 'jest --ci --testRegex \"server.*\\.test\\.js\"'",
+    "test:fe": "jest --ci --testRegex \".*\\.test\\.ts\"",
     "docker": "onchange -i -k '**' --exclude-path .gitignore -- docker compose up --build"
   },
   "copyFiles": [
@@ -57,7 +57,9 @@
   },
   "jest": {
     "setupFilesAfterEnv": [
-      "jest-extended/all"
+      "jest-extended/all",
+      "<rootDir>/server.setup.axios.js",
+      "<rootDir>/server.setup.lodash.js"
     ],
     "watchPathIgnorePatterns": [
       "<rootDir>/node_modules"

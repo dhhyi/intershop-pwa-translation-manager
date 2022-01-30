@@ -1,12 +1,3 @@
-const axios = require("axios");
-
-axios.defaults.baseURL = "http://localhost:" + (process.env.PORT || "8001");
-
-axios.interceptors.response.use(
-  (response) => response,
-  (error) => Promise.resolve(error.response)
-);
-
 describe("Server Import", () => {
   beforeAll(async () => {
     const deleteDB = await axios.delete("/db", {});
