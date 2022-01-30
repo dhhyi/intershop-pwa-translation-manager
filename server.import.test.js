@@ -151,7 +151,6 @@ bar;;csv
       const res = await axios.delete("/import/de");
       expect(res.data).toEqual("Deleted all keys.");
       expect(res.status).toEqual(200);
-      expect(res.data).toMatchInlineSnapshot(`"Deleted all keys."`);
     });
 
     it("should have no translations available", async () => {

@@ -224,106 +224,120 @@ function getLocalizations(parsed, req) {
 }
 
 app.get(`/localizations/${ID}/:key`, (req, res, next) => {
-  const themes = getConfig(req).themes || [];
-  if (themes.includes(req.params.key.replace(/\.json$/, ""))) {
-    next();
-  } else {
+  try {
+    const themes = getConfig(req).themes || [];
+    if (themes.includes(req.params.key.replace(/\.json$/, ""))) {
+      next();
+    } else {
+      const parsed = parseID(req.params);
+      if (parsed.error) {
+        return res.status(400).send(parsed.error);
+      }
+
+      const data = getLocalizations(parsed, req)[req.params.key];
+      if (data) {
+        return res.set("content-type", "text/plain").send(data);
+      }
+      return res.sendStatus(404);
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get(`/localizations/${ID}`, (req, res, next) => {
+  try {
     const parsed = parseID(req.params);
     if (parsed.error) {
       return res.status(400).send(parsed.error);
     }
 
-    const data = getLocalizations(parsed, req)[req.params.key];
-    if (data) {
-      return res.set("content-type", "text/plain").send(data);
+    res.send(getLocalizations(parsed, req));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/list", (req, res, next) => {
+  try {
+    const config = getConfig();
+
+    let links;
+
+    switch (req.query.query) {
+      case "combinations":
+        if (!Object.keys(config.combinations || {}).length) {
+          return res.status(400).send("No combinations are configured.");
+        }
+      case "all":
+        if (!config.themes?.length) {
+          return res.status(400).send("No themes are configured.");
+        }
+      default:
+        if (!config.locales?.length) {
+          return res.status(400).send("No locales are configured.");
+        }
     }
-    return res.sendStatus(404);
-  }
-});
 
-app.get(`/localizations/${ID}`, (req, res) => {
-  const parsed = parseID(req.params);
-  if (parsed.error) {
-    return res.status(400).send(parsed.error);
-  }
+    const newQuery = Object.entries(
+      _.omit({ unblocked: true, ...req.query }, "query")
+    )
+      .map(([k, v]) => `${k}=${v}`)
+      .join("&");
+    const url = (locale, theme) =>
+      `${req.protocol}://${req.get("host")}/localizations/${locale}${
+        theme ? "/" + theme : ""
+      }?${newQuery}`;
+    const id = (locale, theme) => `${locale}${theme ? "-" + theme : ""}`;
 
-  res.send(getLocalizations(parsed, req));
-});
-
-app.get("/list", (req, res) => {
-  const config = getConfig();
-
-  let links;
-
-  switch (req.query.query) {
-    case "combinations":
-      if (!Object.keys(config.combinations || {}).length) {
-        return res.status(400).send("No combinations are configured.");
-      }
-    case "all":
-      if (!config.themes?.length) {
-        return res.status(400).send("No themes are configured.");
-      }
-    default:
-      if (!config.locales?.length) {
-        return res.status(400).send("No locales are configured.");
-      }
-  }
-
-  const newQuery = Object.entries(
-    _.omit({ unblocked: true, ...req.query }, "query")
-  )
-    .map(([k, v]) => `${k}=${v}`)
-    .join("&");
-  const url = (locale, theme) =>
-    `${req.protocol}://${req.get("host")}/localizations/${locale}${
-      theme ? "/" + theme : ""
-    }?${newQuery}`;
-  const id = (locale, theme) => `${locale}${theme ? "-" + theme : ""}`;
-
-  switch (req.query.query) {
-    case "combinations":
-      const combinations = _.flatten(
-        Object.entries(config.combinations).map(([locale, themes]) =>
-          themes.map((theme) => ({ locale, theme }))
-        )
-      );
-
-      combinations.push(
-        ...combinations
-          .map(({ locale, theme }) => ({
-            locale: /^[a-z]+/.exec(locale)[0],
-            theme,
-          }))
-          .filter(
-            ({ locale: l, theme: t }, i, a) =>
-              a.findIndex((v) => v.locale === l && v.theme === t) === i
+    switch (req.query.query) {
+      case "combinations":
+        const combinations = _.flatten(
+          Object.entries(config.combinations).map(([locale, themes]) =>
+            themes.map((theme) => ({ locale, theme }))
           )
-      );
+        );
 
-      combinations.push(...config.languages.map((locale) => ({ locale })));
+        combinations.push(
+          ...combinations
+            .map(({ locale, theme }) => ({
+              locale: /^[a-z]+/.exec(locale)[0],
+              theme,
+            }))
+            .filter(
+              ({ locale: l, theme: t }, i, a) =>
+                a.findIndex((v) => v.locale === l && v.theme === t) === i
+            )
+        );
 
-      combinations.push(...config.locales.map((locale) => ({ locale })));
+        combinations.push(...config.languages.map((locale) => ({ locale })));
 
-      links = _.sortBy(
-        combinations.map(({ locale, theme }) => ({
-          id: id(locale, theme),
-          url: url(locale, theme),
-        })),
-        "id"
-      );
-      break;
+        combinations.push(...config.locales.map((locale) => ({ locale })));
 
-    case "locale":
-      links = [...config.locales].sort().map((id) => ({ id, url: url(id) }));
-      break;
+        links = _.sortBy(
+          combinations.map(({ locale, theme }) => ({
+            id: id(locale, theme),
+            url: url(locale, theme),
+          })),
+          "id"
+        );
+        break;
 
-    default:
-      links = [...config.languages].sort().map((id) => ({ id, url: url(id) }));
-      break;
+      case "locale":
+        links = [...config.locales].sort().map((id) => ({ id, url: url(id) }));
+        break;
+
+      default:
+        links = [...config.languages]
+          .sort()
+          .map((id) => ({ id, url: url(id) }));
+        break;
+    }
+
+    return res.send(links);
+  } catch (error) {
+    next(error);
   }
-
-  return res.send(links);
 });
 
 // </OPEN-DB>
@@ -356,8 +370,32 @@ function assertFormat(req, res, ...formats) {
 
 // <DB>
 
-app.put(`/localizations/${ID}/:key`, async (req, res) => {
-  if (assertFormat(req, res, "text/plain")) {
+app.put(`/localizations/${ID}/:key`, async (req, res, next) => {
+  try {
+    if (assertFormat(req, res, "text/plain")) {
+      const parsed = parseID(req.params);
+      if (parsed.error) {
+        return res.status(400).send(parsed.error);
+      }
+      if (!localizations.data[parsed.id]) {
+        localizations.data[parsed.id] = {};
+      }
+      const key = req.params.key;
+      const body = req.body;
+
+      console.log("set", parsed.id, key, "=", body);
+      localizations.data[parsed.id][key] = body;
+
+      await localizations.write();
+      return res.sendStatus(204);
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete(`/localizations/${ID}/:key`, async (req, res, next) => {
+  try {
     const parsed = parseID(req.params);
     if (parsed.error) {
       return res.status(400).send(parsed.error);
@@ -366,160 +404,160 @@ app.put(`/localizations/${ID}/:key`, async (req, res) => {
       localizations.data[parsed.id] = {};
     }
     const key = req.params.key;
-    const body = req.body;
 
-    console.log("set", parsed.id, key, "=", body);
-    localizations.data[parsed.id][key] = body;
+    console.log("delete", parsed.id, key);
+    localizations.data[parsed.id][key] = undefined;
 
     await localizations.write();
     return res.sendStatus(204);
+  } catch (error) {
+    next(error);
   }
-});
-
-app.delete(`/localizations/${ID}/:key`, async (req, res) => {
-  const parsed = parseID(req.params);
-  if (parsed.error) {
-    return res.status(400).send(parsed.error);
-  }
-  if (!localizations.data[parsed.id]) {
-    localizations.data[parsed.id] = {};
-  }
-  const key = req.params.key;
-
-  console.log("delete", parsed.id, key);
-  localizations.data[parsed.id][key] = undefined;
-
-  await localizations.write();
-  return res.sendStatus(204);
 });
 
 // </DB>
 
 // <IMPORT>
 
-app.post(`/import/${ID}`, async (req, res) => {
-  if (assertFormat(req, res, "text/plain", "application/json")) {
+app.post(`/import/${ID}`, async (req, res, next) => {
+  try {
+    if (assertFormat(req, res, "text/plain", "application/json")) {
+      const parsed = parseID(req.params);
+      if (parsed.error) {
+        return res.status(400).send(parsed.error);
+      }
+
+      const type = req.query.type;
+      const options = ["replace", "overwrite", "add"];
+      if (!type) {
+        return res
+          .status(400)
+          .send(
+            "Query parameter 'type' is required. Options: " + options.join(", ")
+          );
+      }
+
+      if (!options.some((t) => t === type)) {
+        return res
+          .status(400)
+          .send(
+            "Value for query parameter 'type' is not supported. Options: " +
+              options.join(", ")
+          );
+      }
+
+      let data;
+
+      if (typeof req.body === "object") {
+        data = req.body;
+      } else {
+        try {
+          data = JSON.parse(req.body);
+        } catch (e1) {
+          try {
+            data = parse(req.body, {
+              delimiter: ";",
+              encoding: "utf-8",
+              recordDelimiter: ["\n", "\r", "\r\n"],
+              skip_empty_lines: true,
+            }).reduce(
+              (acc, [key, , translation]) => ({ ...acc, [key]: translation }),
+              {}
+            );
+          } catch (e2) {
+            console.error(e2);
+            return res.status(400).send("Could not parse CSV or JSON content");
+          }
+        }
+      }
+
+      if (!Object.keys(data).length) {
+        return res
+          .status(400)
+          .send("Could not parse any data in the CSV or JSON content");
+      }
+
+      if (!localizations.data[parsed.id]) {
+        localizations.data[parsed.id] = {};
+      }
+
+      console.log("importing", parsed.id, "with strategy", type);
+
+      let message;
+      switch (type) {
+        case "replace":
+          localizations.data[parsed.id] = data;
+          message = `Imported ${Object.keys(data).length} keys.`;
+          break;
+
+        case "overwrite":
+          localizations.data[parsed.id] = {
+            ...localizations.data[parsed.id],
+            ...data,
+          };
+          message = `Imported ${Object.keys(data).length} keys.`;
+          break;
+
+        case "add":
+          const originalKeys = Object.keys(localizations.data[parsed.id]);
+          localizations.data[parsed.id] = {
+            ...data,
+            ...localizations.data[parsed.id],
+          };
+          message = `Imported ${
+            Object.keys(data).filter((k) => !originalKeys.includes(k)).length
+          } keys.`;
+          break;
+
+        default:
+          return res.sendStatus(400);
+      }
+
+      await localizations.write();
+      return res.status(200).send(message);
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.delete(`/import/${ID}`, async (req, res, next) => {
+  try {
     const parsed = parseID(req.params);
     if (parsed.error) {
       return res.status(400).send(parsed.error);
     }
 
-    const type = req.query.type;
-    const options = ["replace", "overwrite", "add"];
-    if (!type) {
-      return res
-        .status(400)
-        .send(
-          "Query parameter 'type' is required. Options: " + options.join(", ")
-        );
-    }
-
-    if (!options.some((t) => t === type)) {
-      return res
-        .status(400)
-        .send(
-          "Value for query parameter 'type' is not supported. Options: " +
-            options.join(", ")
-        );
-    }
-
-    let data;
-
-    if (typeof req.body === "object") {
-      data = req.body;
-    } else {
-      try {
-        data = JSON.parse(req.body);
-      } catch (e1) {
-        try {
-          data = parse(req.body, {
-            delimiter: ";",
-            encoding: "utf-8",
-            recordDelimiter: ["\n", "\r", "\r\n"],
-            skip_empty_lines: true,
-          }).reduce(
-            (acc, [key, , translation]) => ({ ...acc, [key]: translation }),
-            {}
-          );
-        } catch (e2) {
-          console.error(e2);
-          return res.status(400).send("Could not parse CSV or JSON content");
-        }
-      }
-    }
-
-    if (!Object.keys(data).length) {
-      return res
-        .status(400)
-        .send("Could not parse any data in the CSV or JSON content");
-    }
-
-    if (!localizations.data[parsed.id]) {
-      localizations.data[parsed.id] = {};
-    }
-
-    console.log("importing", parsed.id, "with strategy", type);
-
-    let message;
-    switch (type) {
-      case "replace":
-        localizations.data[parsed.id] = data;
-        message = `Imported ${Object.keys(data).length} keys.`;
-        break;
-
-      case "overwrite":
-        localizations.data[parsed.id] = {
-          ...localizations.data[parsed.id],
-          ...data,
-        };
-        message = `Imported ${Object.keys(data).length} keys.`;
-        break;
-
-      case "add":
-        const originalKeys = Object.keys(localizations.data[parsed.id]);
-        localizations.data[parsed.id] = {
-          ...data,
-          ...localizations.data[parsed.id],
-        };
-        message = `Imported ${
-          Object.keys(data).filter((k) => !originalKeys.includes(k)).length
-        } keys.`;
-        break;
-
-      default:
-        return res.sendStatus(400);
-    }
-
+    localizations.data[parsed.id] = undefined;
     await localizations.write();
-    return res.status(200).send(message);
+    return res.send(`Deleted all keys.`);
+  } catch (error) {
+    next(error);
   }
-});
-
-app.delete(`/import/${ID}`, async (req, res) => {
-  const parsed = parseID(req.params);
-  if (parsed.error) {
-    return res.status(400).send(parsed.error);
-  }
-
-  localizations.data[parsed.id] = undefined;
-  await localizations.write();
-  return res.send(`Deleted all keys.`);
 });
 
 // </IMPORT>
 
 // <CONFIG>
 
-app.get("/config", (req, res) => {
-  return res.send(getConfig(req));
+app.get("/config", (req, res, next) => {
+  try {
+    return res.send(getConfig(req));
+  } catch (error) {
+    next(error);
+  }
 });
 
-app.get("/config/:key", (req, res) => {
-  const data = getConfig(req)[req.params.key];
-  if (data === undefined) {
-    return res.sendStatus(404);
+app.get("/config/:key", (req, res, next) => {
+  try {
+    const data = getConfig(req)[req.params.key];
+    if (data === undefined) {
+      return res.sendStatus(404);
+    }
+    return res.send(data);
+  } catch (error) {
+    next(error);
   }
-  return res.send(data);
 });
 
 function normalizeLocale(input) {
@@ -604,61 +642,73 @@ function checkConfigValue(key, value) {
   }
 }
 
-app.post("/config", async (req, res) => {
-  if (assertFormat(req, res, "application/json")) {
-    const newConfig = {};
-    for (const key in req.body) {
-      const value = req.body[key];
-      const parsed = checkConfigValue(key, value);
-      if (parsed.error) {
-        return res.status(400).send(parsed.error);
+app.post("/config", async (req, res, next) => {
+  try {
+    if (assertFormat(req, res, "application/json")) {
+      const newConfig = {};
+      for (const key in req.body) {
+        const value = req.body[key];
+        const parsed = checkConfigValue(key, value);
+        if (parsed.error) {
+          return res.status(400).send(parsed.error);
+        }
+        newConfig[key] = parsed.value;
       }
-      newConfig[key] = parsed.value;
-    }
 
-    config.data = newConfig;
-    await config.write();
-    logConfig();
-    return res.sendStatus(204);
+      config.data = newConfig;
+      await config.write();
+      logConfig();
+      return res.sendStatus(204);
+    }
+  } catch (error) {
+    next(error);
   }
 });
 
 app.put("/config/:key", async (req, res, next) => {
-  const key = req.params.key;
-  if (key === "block") {
-    blockList.add(req.ip);
-    return res.sendStatus(204);
-  } else if (configReadOnlyFields.includes(key)) {
-    next();
-  } else {
-    let value = req.body;
-    if (typeof value === "string") {
-      if ("true" === value?.toLowerCase()) {
-        value = true;
-      } else if ("false" === value?.toLowerCase()) {
-        value = false;
+  try {
+    const key = req.params.key;
+    if (key === "block") {
+      blockList.add(req.ip);
+      return res.sendStatus(204);
+    } else if (configReadOnlyFields.includes(key)) {
+      next();
+    } else {
+      let value = req.body;
+      if (typeof value === "string") {
+        if ("true" === value?.toLowerCase()) {
+          value = true;
+        } else if ("false" === value?.toLowerCase()) {
+          value = false;
+        }
       }
-    }
 
-    const parsed = checkConfigValue(key, value);
-    if (parsed.error) {
-      return res.status(400).send(parsed.error);
-    }
+      const parsed = checkConfigValue(key, value);
+      if (parsed.error) {
+        return res.status(400).send(parsed.error);
+      }
 
-    await setConfigValue(key, parsed.value);
-    return res.sendStatus(204);
+      await setConfigValue(key, parsed.value);
+      return res.sendStatus(204);
+    }
+  } catch (error) {
+    next(error);
   }
 });
 
 app.delete("/config/:key", async (req, res, next) => {
-  if (req.params.key === "block") {
-    blockList.remove(req.ip);
-    return res.sendStatus(204);
-  } else if (configReadOnlyFields.includes(req.params.key)) {
-    next();
-  } else {
-    await setConfigValue(req.params.key, undefined);
-    return res.sendStatus(204);
+  try {
+    if (req.params.key === "block") {
+      blockList.remove(req.ip);
+      return res.sendStatus(204);
+    } else if (configReadOnlyFields.includes(req.params.key)) {
+      next();
+    } else {
+      await setConfigValue(req.params.key, undefined);
+      return res.sendStatus(204);
+    }
+  } catch (error) {
+    next(error);
   }
 });
 
@@ -666,27 +716,31 @@ app.delete("/config/:key", async (req, res, next) => {
 
 // <TRANSLATE>
 
-app.post("/translate", async (req, res) => {
-  const googleAPIKey = process.env.GOOGLE_API_KEY;
+app.post("/translate", async (req, res, next) => {
+  try {
+    const googleAPIKey = process.env.GOOGLE_API_KEY;
 
-  if (!googleAPIKey) {
-    return res.status(400).send("No Google translate API key is set.");
-  }
-
-  if (assertFormat(req, res, "application/json")) {
-    const tr = new googleTranslate.v2.Translate({
-      key: googleAPIKey,
-    });
-    try {
-      const translation = await tr.translate(
-        req.body.text,
-        req.body.lang.replace(/_.*$/, "")
-      );
-      return res.send(translation?.[0]);
-    } catch (err) {
-      console.error(err);
-      return res.status(400).send(err.message);
+    if (!googleAPIKey) {
+      return res.status(400).send("No Google translate API key is set.");
     }
+
+    if (assertFormat(req, res, "application/json")) {
+      const tr = new googleTranslate.v2.Translate({
+        key: googleAPIKey,
+      });
+      try {
+        const translation = await tr.translate(
+          req.body.text,
+          req.body.lang.replace(/_.*$/, "")
+        );
+        return res.send(translation?.[0]);
+      } catch (err) {
+        console.error(err);
+        return res.status(400).send(err.message);
+      }
+    }
+  } catch (error) {
+    next(error);
   }
 });
 
@@ -697,6 +751,10 @@ app.get((_, res) => {
 });
 app.use((_, res) => {
   return res.sendStatus(405);
+});
+app.use((err, _req, res, _next) => {
+  console.error(err);
+  return res.status(500).send("Internal Server Error: " + err.stack);
 });
 
 app.listen(+process.env.PORT || 8000, () => {
