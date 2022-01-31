@@ -179,14 +179,14 @@ function parseID(params) {
   const config = getConfig();
 
   if (!(config.languages || []).includes(lang)) {
-    return { error: "Language " + lang + " is not configured." };
+    throw new ConfigError("Language " + lang + " is not configured.");
   } else if (
     country &&
     !(config.locales || []).includes(`${lang}_${country}`)
   ) {
-    return { error: "Locale " + locale + " is not configured." };
+    throw new ConfigError("Locale " + locale + " is not configured.");
   } else if (theme && !(config.themes || []).includes(theme)) {
-    return { error: "Theme " + theme + " is not configured." };
+    throw new ConfigError("Theme " + theme + " is not configured.");
   } else {
     let id = lang;
     if (country) {
@@ -232,10 +232,6 @@ app.get(`/localizations/${ID}/:key`, (req, res, next) => {
       next();
     } else {
       const parsed = parseID(req.params);
-      if (parsed.error) {
-        return res.status(400).send(parsed.error);
-      }
-
       const data = getLocalizations(parsed, req)[req.params.key];
       if (data) {
         return res.set("content-type", "text/plain").send(data);
@@ -250,10 +246,6 @@ app.get(`/localizations/${ID}/:key`, (req, res, next) => {
 app.get(`/localizations/${ID}`, (req, res, next) => {
   try {
     const parsed = parseID(req.params);
-    if (parsed.error) {
-      return res.status(400).send(parsed.error);
-    }
-
     res.send(getLocalizations(parsed, req));
   } catch (error) {
     next(error);
@@ -418,9 +410,6 @@ app.put(`/localizations/${ID}/:key`, async (req, res, next) => {
   try {
     if (assertFormat(req, res, "text/plain")) {
       const parsed = parseID(req.params);
-      if (parsed.error) {
-        return res.status(400).send(parsed.error);
-      }
       if (!localizations.data[parsed.id]) {
         localizations.data[parsed.id] = {};
       }
@@ -441,9 +430,6 @@ app.put(`/localizations/${ID}/:key`, async (req, res, next) => {
 app.delete(`/localizations/${ID}/:key`, async (req, res, next) => {
   try {
     const parsed = parseID(req.params);
-    if (parsed.error) {
-      return res.status(400).send(parsed.error);
-    }
     if (!localizations.data[parsed.id]) {
       localizations.data[parsed.id] = {};
     }
@@ -467,10 +453,6 @@ app.post(`/import/${ID}`, async (req, res, next) => {
   try {
     if (assertFormat(req, res, "text/plain", "application/json")) {
       const parsed = parseID(req.params);
-      if (parsed.error) {
-        return res.status(400).send(parsed.error);
-      }
-
       const type = req.query.type;
       const options = ["replace", "overwrite", "add"];
       if (!type) {
@@ -568,10 +550,6 @@ app.post(`/import/${ID}`, async (req, res, next) => {
 app.delete(`/import/${ID}`, async (req, res, next) => {
   try {
     const parsed = parseID(req.params);
-    if (parsed.error) {
-      return res.status(400).send(parsed.error);
-    }
-
     localizations.data[parsed.id] = undefined;
     await localizations.write();
     return res.send(`Deleted all keys.`);
@@ -628,7 +606,7 @@ function checkConfigValue(key, value) {
     if (typeof value === "string") {
       parsed = parseArray(value);
     } else if (!Array.isArray(value)) {
-      return { error: `Could not set ${key}.` };
+      throw new ConfigError(`Could not set ${key}.`);
     }
 
     const errors = [];
@@ -640,19 +618,19 @@ function checkConfigValue(key, value) {
       return p;
     });
     if (errors.length) {
-      return { error: "Could not set locales. " + errors.join(" ") };
+      throw new ConfigError("Could not set locales. " + errors.join(" "));
     }
 
-    return { value: parsed };
+    return parsed;
   } else if (key === "themes" || key === "ignored") {
     let parsed = value;
     if (typeof value === "string") {
       parsed = parseArray(value);
     } else if (!Array.isArray(value)) {
-      return { error: `Could not set ${key}.` };
+      throw new ConfigError(`Could not set ${key}.`);
     }
 
-    return { value: parsed };
+    return parsed;
   } else if (key === "combinations") {
     const config = getConfig();
     const locales = config.locales || [];
@@ -663,26 +641,26 @@ function checkConfigValue(key, value) {
     for (const [cl, cts] of Object.entries(value)) {
       const locale = normalizeLocale(cl);
       if (!locales.includes(locale)) {
-        return { error: `Locale "${cl}" is not configured.` };
+        throw new ConfigError(`Locale "${cl}" is not configured.`);
       }
       for (const th of cts) {
         if (!themes.includes(th)) {
-          return { error: `Theme "${th}" is not configured.` };
+          throw new ConfigError(`Theme "${th}" is not configured.`);
         }
       }
 
       newCombinations[locale] = cts.sort();
     }
-    return { value: newCombinations };
+    return newCombinations;
   } else if (key === "baseLang") {
     if (typeof value !== "string") {
-      return { error: `Could not set ${key}.` };
+      throw new ConfigError(`Could not set ${key}.`);
     } else if (!/^[a-zA-Z]+$/.test(value)) {
-      return { error: `Could not set ${key}.` };
+      throw new ConfigError(`Could not set ${key}.`);
     }
-    return { value: value.toLowerCase() };
+    return value.toLowerCase();
   } else {
-    return { value };
+    return value;
   }
 }
 
@@ -693,10 +671,7 @@ app.post("/config", async (req, res, next) => {
       for (const key in req.body) {
         const value = req.body[key];
         const parsed = checkConfigValue(key, value);
-        if (parsed.error) {
-          return res.status(400).send(parsed.error);
-        }
-        newConfig[key] = parsed.value;
+        newConfig[key] = parsed;
       }
 
       config.data = newConfig;
@@ -728,11 +703,7 @@ app.put("/config/:key", async (req, res, next) => {
       }
 
       const parsed = checkConfigValue(key, value);
-      if (parsed.error) {
-        return res.status(400).send(parsed.error);
-      }
-
-      await setConfigValue(key, parsed.value);
+      await setConfigValue(key, parsed);
       return res.sendStatus(204);
     }
   } catch (error) {
