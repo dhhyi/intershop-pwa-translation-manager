@@ -10,6 +10,7 @@ import _ from "lodash";
 // <INIT>
 
 class ConfigError extends Error {}
+class UsageError extends Error {}
 
 if (process.env.SILENT === "true") {
   console.log = () => {};
@@ -383,38 +384,33 @@ app.use((req, res, next) => {
   next();
 });
 
-function assertFormat(req, res, ...formats) {
+function assertFormat(req, ...formats) {
   if (!formats.some((format) => req.get("Content-Type") === format)) {
-    res
-      .status(400)
-      .send(
-        `Only Content-Type ${formats
-          .map((x) => `"${x}"`)
-          .join()} is allowed here! Received "${req.get("Content-Type")}"`
-      );
-    return false;
+    throw new UsageError(
+      `Only Content-Type ${formats
+        .map((x) => `"${x}"`)
+        .join()} is allowed here! Received "${req.get("Content-Type")}"`
+    );
   }
-  return true;
 }
 
 // <DB>
 
 app.put(`/localizations/${ID}/:key`, async (req, res, next) => {
   try {
-    if (assertFormat(req, res, "text/plain")) {
-      const { id } = parseID(req.params);
-      if (!localizations.data[id]) {
-        localizations.data[id] = {};
-      }
-      const key = req.params.key;
-      const body = req.body;
-
-      console.log("set", id, key, "=", body);
-      localizations.data[id][key] = body;
-
-      await localizations.write();
-      return res.sendStatus(204);
+    assertFormat(req, res, "text/plain");
+    const { id } = parseID(req.params);
+    if (!localizations.data[id]) {
+      localizations.data[id] = {};
     }
+    const key = req.params.key;
+    const body = req.body;
+
+    console.log("set", id, key, "=", body);
+    localizations.data[id][key] = body;
+
+    await localizations.write();
+    return res.sendStatus(204);
   } catch (error) {
     next(error);
   }
@@ -444,97 +440,88 @@ app.delete(`/localizations/${ID}/:key`, async (req, res, next) => {
 
 app.post(`/import/${ID}`, async (req, res, next) => {
   try {
-    if (assertFormat(req, res, "text/plain", "application/json")) {
-      const { id } = parseID(req.params);
-      const type = req.query.type;
-      const options = ["replace", "overwrite", "add"];
-      if (!type) {
-        return res
-          .status(400)
-          .send(
-            "Query parameter 'type' is required. Options: " + options.join(", ")
-          );
-      }
+    assertFormat(req, res, "text/plain", "application/json");
+    const { id } = parseID(req.params);
+    const type = req.query.type;
+    const options = ["replace", "overwrite", "add"];
+    if (!type) {
+      throw new UsageError(
+        "Query parameter 'type' is required. Options: " + options.join(", ")
+      );
+    }
 
-      if (!options.some((t) => t === type)) {
-        return res
-          .status(400)
-          .send(
-            "Value for query parameter 'type' is not supported. Options: " +
-              options.join(", ")
-          );
-      }
+    let data;
 
-      let data;
-
-      if (typeof req.body === "object") {
-        data = req.body;
-      } else {
+    if (typeof req.body === "object") {
+      data = req.body;
+    } else {
+      try {
+        data = JSON.parse(req.body);
+      } catch (e1) {
         try {
-          data = JSON.parse(req.body);
-        } catch (e1) {
-          try {
-            data = parse(req.body, {
-              delimiter: ";",
-              encoding: "utf-8",
-              recordDelimiter: ["\n", "\r", "\r\n"],
-              skip_empty_lines: true,
-            }).reduce(
-              (acc, [key, , translation]) => ({ ...acc, [key]: translation }),
-              {}
-            );
-          } catch (e2) {
-            console.error(e2);
-            return res.status(400).send("Could not parse CSV or JSON content");
-          }
+          data = parse(req.body, {
+            delimiter: ";",
+            encoding: "utf-8",
+            recordDelimiter: ["\n", "\r", "\r\n"],
+            skip_empty_lines: true,
+          }).reduce(
+            (acc, [key, , translation]) => ({ ...acc, [key]: translation }),
+            {}
+          );
+        } catch (e2) {
+          console.error(e2);
+          throw new UsageError("Could not parse CSV or JSON content");
         }
       }
-
-      if (!Object.keys(data).length) {
-        return res
-          .status(400)
-          .send("Could not parse any data in the CSV or JSON content");
-      }
-
-      if (!localizations.data[id]) {
-        localizations.data[id] = {};
-      }
-
-      console.log("importing", id, "with strategy", type);
-
-      let message;
-      switch (type) {
-        case "replace":
-          localizations.data[id] = data;
-          message = `Imported ${Object.keys(data).length} keys.`;
-          break;
-
-        case "overwrite":
-          localizations.data[id] = {
-            ...localizations.data[id],
-            ...data,
-          };
-          message = `Imported ${Object.keys(data).length} keys.`;
-          break;
-
-        case "add":
-          const originalKeys = Object.keys(localizations.data[id]);
-          localizations.data[id] = {
-            ...data,
-            ...localizations.data[id],
-          };
-          message = `Imported ${
-            Object.keys(data).filter((k) => !originalKeys.includes(k)).length
-          } keys.`;
-          break;
-
-        default:
-          return res.sendStatus(400);
-      }
-
-      await localizations.write();
-      return res.status(200).send(message);
     }
+
+    if (!Object.keys(data).length) {
+      throw new UsageError(
+        "Could not parse any data in the CSV or JSON content"
+      );
+    }
+
+    if (!localizations.data[id]) {
+      localizations.data[id] = {};
+    }
+
+    console.log("importing", id, "with strategy", type);
+
+    let message;
+    switch (type) {
+      case "replace":
+        localizations.data[id] = data;
+        message = `Imported ${Object.keys(data).length} keys.`;
+        break;
+
+      case "overwrite":
+        localizations.data[id] = {
+          ...localizations.data[id],
+          ...data,
+        };
+        message = `Imported ${Object.keys(data).length} keys.`;
+        break;
+
+      case "add":
+        const originalKeys = Object.keys(localizations.data[id]);
+        localizations.data[id] = {
+          ...data,
+          ...localizations.data[id],
+        };
+        message = `Imported ${
+          Object.keys(data).filter((k) => !originalKeys.includes(k)).length
+        } keys.`;
+        break;
+
+      default:
+        throw new UsageError(
+          "Value for query parameter 'type' is not supported. Options: " +
+            options.join(", ")
+        );
+    }
+
+    await localizations.write();
+    return res.status(200).send(message);
   } catch (error) {
     next(error);
   }
@@ -659,19 +646,18 @@ function checkConfigValue(key, value) {
 
 app.post("/config", async (req, res, next) => {
   try {
-    if (assertFormat(req, res, "application/json")) {
-      const newConfig = {};
-      for (const key in req.body) {
-        const value = req.body[key];
-        const parsed = checkConfigValue(key, value);
-        newConfig[key] = parsed;
-      }
-
-      config.data = newConfig;
-      await config.write();
-      logConfig();
-      return res.sendStatus(204);
+    assertFormat(req, res, "application/json");
+    const newConfig = {};
+    for (const key in req.body) {
+      const value = req.body[key];
+      const parsed = checkConfigValue(key, value);
+      newConfig[key] = parsed;
     }
+
+    config.data = newConfig;
+    await config.write();
+    logConfig();
+    return res.sendStatus(204);
   } catch (error) {
     next(error);
   }
@@ -729,23 +715,22 @@ app.post("/translate", async (req, res, next) => {
     const googleAPIKey = process.env.GOOGLE_API_KEY;
 
     if (!googleAPIKey) {
-      return res.status(400).send("No Google translate API key is set.");
+      throw new ConfigError("No Google translate API key is set.");
     }
 
-    if (assertFormat(req, res, "application/json")) {
-      const tr = new googleTranslate.v2.Translate({
-        key: googleAPIKey,
-      });
-      try {
-        const translation = await tr.translate(
-          req.body.text,
-          req.body.lang.replace(/_.*$/, "")
-        );
-        return res.send(translation?.[0]);
-      } catch (err) {
-        console.error(err);
-        return res.status(400).send(err.message);
-      }
+    assertFormat(req, res, "application/json");
+    const tr = new googleTranslate.v2.Translate({
+      key: googleAPIKey,
+    });
+    try {
+      const translation = await tr.translate(
+        req.body.text,
+        req.body.lang.replace(/_.*$/, "")
+      );
+      return res.send(translation?.[0]);
+    } catch (err) {
+      console.error(err);
+      throw new UsageError(err.message);
     }
   } catch (error) {
     next(error);
@@ -761,7 +746,7 @@ app.use((_, res) => {
   return res.sendStatus(405);
 });
 app.use((err, _req, res, _next) => {
-  if (err instanceof ConfigError) {
+  if (err instanceof ConfigError || err instanceof UsageError) {
     return res.status(400).send(err.message);
   } else {
     console.error(err);
