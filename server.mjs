@@ -169,7 +169,10 @@ function getLocales() {
   if (!config.locales?.length) {
     throw new ConfigError("No locales are configured.");
   }
-  return [...config.locales].sort();
+  return [...config.locales].sort().map((locale) => {
+    const [lang, country] = locale.split("_");
+    return { lang, country };
+  });
 }
 
 function getLanguages() {
@@ -196,59 +199,44 @@ function getCombinations() {
   if (Object.keys(config.combinations || {}).length) {
     combinations.push(
       ..._.flatten(
-        Object.entries(config.combinations).map(([locale, themes]) =>
-          themes.map((theme) => ({ locale, theme }))
-        )
+        Object.entries(config.combinations).map(([locale, themes]) => {
+          const [lang, country] = locale.split("_");
+          return themes.map((theme) => ({ lang, country, theme }));
+        })
       )
     );
 
     combinations.push(
       ...combinations
-        .map(({ locale, theme }) => ({
-          locale: /^[a-z]+/.exec(locale)[0],
-          theme,
-        }))
+        .map(({ lang, theme }) => ({ lang, theme }))
         .filter(
-          ({ locale: l, theme: t }, i, a) =>
-            a.findIndex((v) => v.locale === l && v.theme === t) === i
+          ({ lang: l, theme: t }, i, a) =>
+            a.findIndex((v) => v.lang === l && v.theme === t) === i
         )
     );
   } else {
     combinations.push(
       ..._.flatten(
-        config.locales.map((locale) =>
-          themes.map((theme) => ({ locale, theme }))
+        getLocales().map(({ lang, country }) =>
+          themes.map((theme) => ({ lang, country, theme }))
         )
       )
     );
 
     combinations.push(
       ..._.flatten(
-        config.languages.map((locale) =>
-          themes.map((theme) => ({ locale, theme }))
-        )
+        config.languages.map((lang) => themes.map((theme) => ({ lang, theme })))
       )
     );
   }
 
-  combinations.push(...config.locales.map((locale) => ({ locale })));
+  combinations.push(...config.languages.map((lang) => ({ lang })));
 
-  combinations.push(...config.languages.map((locale) => ({ locale })));
+  combinations.push(
+    ...getLocales().map(({ lang, country }) => ({ lang, country }))
+  );
 
-  return combinations.sort((a, b) => {
-    const localesCompare = a.locale.localeCompare(b.locale);
-    if (localesCompare === 0) {
-      if (!a.theme && b.theme) {
-        return -1;
-      } else if (!b.theme && a.theme) {
-        return 1;
-      } else if (a.theme && b.theme) {
-        return a.theme.localeCompare(b.theme);
-      }
-    } else {
-      return localesCompare;
-    }
-  });
+  return combinations;
 }
 
 const ID =
@@ -266,14 +254,19 @@ function parseID(params) {
 
   if (!getLanguages().includes(lang)) {
     throw new ConfigError("Language " + lang + " is not configured.");
-  } else if (country && !getLocales().includes(`${lang}_${country}`)) {
+  } else if (
+    country &&
+    !getLocales().find((l) => l.lang === lang && l.country === country)
+  ) {
     throw new ConfigError("Locale " + locale + " is not configured.");
   } else if (theme && !getThemes().includes(theme)) {
     throw new ConfigError("Theme " + theme + " is not configured.");
   } else {
     let id = lang;
+    let locale;
     if (country) {
       id += "_" + country;
+      locale = id;
     }
     if (theme) {
       id += "-" + theme;
@@ -290,21 +283,17 @@ function parseID(params) {
       }
     }
 
-    return { id, path };
+    return { id, path, locale, lang, country, theme };
   }
 }
 
-function getLocalizations(parsed, req) {
-  if (req.query.unblocked !== "true" && blockList.includes(req.ip)) {
-    res.send({});
+function getLocalizations(parsed, exact = false) {
+  if (exact) {
+    return localizations.data[parsed.id] || {};
   } else {
-    if (req.query.exact === "true") {
-      return localizations.data[parsed.id] || {};
-    } else {
-      return parsed.path
-        .map((id) => localizations.data[id] || {})
-        .reduce((acc, val) => ({ ...acc, ...val }), {});
-    }
+    return parsed.path
+      .map((id) => localizations.data[id] || {})
+      .reduce((acc, val) => ({ ...acc, ...val }), {});
   }
 }
 
@@ -314,7 +303,10 @@ app.get(`/localizations/${ID}/:key`, (req, res, next) => {
     if (themes.includes(req.params.key.replace(/\.json$/, ""))) {
       next();
     } else {
-      const data = getLocalizations(parseID(req.params), req)[req.params.key];
+      const data = getLocalizations(
+        parseID(req.params),
+        req.query.exact === "true"
+      )[req.params.key];
       if (data) {
         return res.set("content-type", "text/plain").send(data);
       }
@@ -327,7 +319,13 @@ app.get(`/localizations/${ID}/:key`, (req, res, next) => {
 
 app.get(`/localizations/${ID}`, (req, res, next) => {
   try {
-    res.send(getLocalizations(parseID(req.params), req));
+    if (req.query.unblocked !== "true" && blockList.includes(req.ip)) {
+      res.send({});
+    } else {
+      res.send(
+        getLocalizations(parseID(req.params), req.query.exact === "true")
+      );
+    }
   } catch (error) {
     next(error);
   }
@@ -340,31 +338,35 @@ app.get("/list", (req, res, next) => {
     )
       .map(([k, v]) => `${k}=${v}`)
       .join("&");
-    const url = (locale, theme) =>
-      `${req.protocol}://${req.get("host")}/localizations/${locale}${
-        theme ? "/" + theme : ""
-      }?${newQuery}`;
-    const id = (locale, theme) => `${locale}${theme ? "-" + theme : ""}`;
+
+    const makeLink = (params) => {
+      const { id, lang, locale, theme } = parseID(params);
+      return {
+        id,
+        url: `${req.protocol}://${req.get("host")}/localizations/${
+          locale || lang
+        }${theme ? "/" + theme : ""}?${newQuery}`,
+      };
+    };
 
     let links;
     switch (req.query.query) {
       case "combinations":
-        links = getCombinations().map(({ locale, theme }) => ({
-          id: id(locale, theme),
-          url: url(locale, theme),
-        }));
+        links = getCombinations().map(makeLink);
         break;
 
       case "locale":
-        links = getLocales().map((id) => ({ id, url: url(id) }));
+        links = getLocales().map(makeLink);
         break;
 
       default:
-        links = getLanguages().map((id) => ({ id, url: url(id) }));
+        links = getLanguages()
+          .map((lang) => ({ lang }))
+          .map(makeLink);
         break;
     }
 
-    return res.send(links);
+    return res.send(_.sortBy(links, "id"));
   } catch (error) {
     next(error);
   }
@@ -435,6 +437,40 @@ app.delete(`/localizations/${ID}/:key`, async (req, res, next) => {
 });
 
 // </DB>
+
+// <OVERRIDES>
+
+app.get("/overrides/:lang?/:key", (req, res, next) => {
+  try {
+    let combinations = getCombinations();
+    if (req.params.lang) {
+      parseID(req.params);
+      combinations = combinations.filter((c) => c.lang === req.params.lang);
+    }
+
+    const makeLink = (params) => {
+      const { id, lang, locale, theme, path } = parseID(params);
+      let urlSnippet = locale || lang;
+      if (theme) {
+        urlSnippet += "/" + theme;
+      }
+      const base = `${req.protocol}://${req.get("host")}`;
+      return {
+        id,
+        lang: urlSnippet,
+        url: `${base}/localizations/${urlSnippet}/${req.params.key}`,
+        interpolated: getLocalizations({ id, path })[req.params.key],
+        value: getLocalizations({ id, path }, true)[req.params.key],
+      };
+    };
+
+    return res.send(_.sortBy(combinations.map(makeLink), "id"));
+  } catch (error) {
+    next(error);
+  }
+});
+
+// </OVERRIDES>
 
 // <IMPORT>
 
@@ -739,11 +775,15 @@ app.post("/translate", async (req, res, next) => {
 
 // </TRANSLATE>
 
+app.use((req, res, next) => {
+  if (req.method !== "GET") {
+    return res.sendStatus(405);
+  } else {
+    next();
+  }
+});
 app.get((_, res) => {
   return res.sendStatus(404);
-});
-app.use((_, res) => {
-  return res.sendStatus(405);
 });
 app.use((err, _req, res, _next) => {
   if (err instanceof ConfigError || err instanceof UsageError) {
