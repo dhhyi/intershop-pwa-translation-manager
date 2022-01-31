@@ -163,94 +163,21 @@ if (process.env.TESTING === "true") {
 
 app.use(cors());
 
-const ID =
-  ":lang([a-zA-Z0-9]+)" +
-  ":div1([-_])?" +
-  ":country([a-zA-Z0-9]+)?" +
-  ":div2([-_\\/])?" +
-  ":theme([a-zA-Z0-9]+)?" +
-  "(.json)?";
-
-function parseID(params) {
-  const lang = params.lang?.toLowerCase();
-  const country = params.country?.toUpperCase();
-  const theme = params.theme?.toLowerCase();
-
+function getLocales() {
   const config = getConfig();
-
-  if (!(config.languages || []).includes(lang)) {
-    throw new ConfigError("Language " + lang + " is not configured.");
-  } else if (
-    country &&
-    !(config.locales || []).includes(`${lang}_${country}`)
-  ) {
-    throw new ConfigError("Locale " + locale + " is not configured.");
-  } else if (theme && !(config.themes || []).includes(theme)) {
-    throw new ConfigError("Theme " + theme + " is not configured.");
-  } else {
-    let id = lang;
-    if (country) {
-      id += "_" + country;
-    }
-    if (theme) {
-      id += "-" + theme;
-    }
-
-    let path = [lang];
-    if (theme) {
-      path.push(`${lang}-${theme}`);
-    }
-    if (country) {
-      path.push(`${lang}_${country}`);
-      if (theme) {
-        path.push(`${lang}_${country}-${theme}`);
-      }
-    }
-
-    return { id, path };
+  if (!config.locales?.length) {
+    throw new ConfigError("No locales are configured.");
   }
+  return [...config.locales].sort();
 }
 
-function getLocalizations(parsed, req) {
-  if (req.query.unblocked !== "true" && blockList.includes(req.ip)) {
-    res.send({});
-  } else {
-    if (req.query.exact === "true") {
-      return localizations.data[parsed.id] || {};
-    } else {
-      return parsed.path
-        .map((id) => localizations.data[id] || {})
-        .reduce((acc, val) => ({ ...acc, ...val }), {});
-    }
+function getLanguages() {
+  const config = getConfig();
+  if (!config.locales?.length) {
+    throw new ConfigError("No locales are configured.");
   }
+  return [...config.languages].sort();
 }
-
-app.get(`/localizations/${ID}/:key`, (req, res, next) => {
-  try {
-    const themes = getConfig(req).themes || [];
-    if (themes.includes(req.params.key.replace(/\.json$/, ""))) {
-      next();
-    } else {
-      const parsed = parseID(req.params);
-      const data = getLocalizations(parsed, req)[req.params.key];
-      if (data) {
-        return res.set("content-type", "text/plain").send(data);
-      }
-      return res.sendStatus(404);
-    }
-  } catch (error) {
-    next(error);
-  }
-});
-
-app.get(`/localizations/${ID}`, (req, res, next) => {
-  try {
-    const parsed = parseID(req.params);
-    res.send(getLocalizations(parsed, req));
-  } catch (error) {
-    next(error);
-  }
-});
 
 function getThemes() {
   const config = getConfig();
@@ -323,21 +250,87 @@ function getCombinations() {
   });
 }
 
-function getLocales() {
-  const config = getConfig();
-  if (!config.locales?.length) {
-    throw new ConfigError("No locales are configured.");
+const ID =
+  ":lang([a-zA-Z0-9]+)" +
+  ":div1([-_])?" +
+  ":country([a-zA-Z0-9]+)?" +
+  ":div2([-_\\/])?" +
+  ":theme([a-zA-Z0-9]+)?" +
+  "(.json)?";
+
+function parseID(params) {
+  const lang = params.lang?.toLowerCase();
+  const country = params.country?.toUpperCase();
+  const theme = params.theme?.toLowerCase();
+
+  if (!getLanguages().includes(lang)) {
+    throw new ConfigError("Language " + lang + " is not configured.");
+  } else if (country && !getLocales().includes(`${lang}_${country}`)) {
+    throw new ConfigError("Locale " + locale + " is not configured.");
+  } else if (theme && !getThemes().includes(theme)) {
+    throw new ConfigError("Theme " + theme + " is not configured.");
+  } else {
+    let id = lang;
+    if (country) {
+      id += "_" + country;
+    }
+    if (theme) {
+      id += "-" + theme;
+    }
+
+    let path = [lang];
+    if (theme) {
+      path.push(`${lang}-${theme}`);
+    }
+    if (country) {
+      path.push(`${lang}_${country}`);
+      if (theme) {
+        path.push(`${lang}_${country}-${theme}`);
+      }
+    }
+
+    return { id, path };
   }
-  return [...config.locales].sort();
 }
 
-function getLanguages() {
-  const config = getConfig();
-  if (!config.locales?.length) {
-    throw new ConfigError("No locales are configured.");
+function getLocalizations(parsed, req) {
+  if (req.query.unblocked !== "true" && blockList.includes(req.ip)) {
+    res.send({});
+  } else {
+    if (req.query.exact === "true") {
+      return localizations.data[parsed.id] || {};
+    } else {
+      return parsed.path
+        .map((id) => localizations.data[id] || {})
+        .reduce((acc, val) => ({ ...acc, ...val }), {});
+    }
   }
-  return [...config.languages].sort();
 }
+
+app.get(`/localizations/${ID}/:key`, (req, res, next) => {
+  try {
+    const themes = getConfig(req).themes || [];
+    if (themes.includes(req.params.key.replace(/\.json$/, ""))) {
+      next();
+    } else {
+      const data = getLocalizations(parseID(req.params), req)[req.params.key];
+      if (data) {
+        return res.set("content-type", "text/plain").send(data);
+      }
+      return res.sendStatus(404);
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get(`/localizations/${ID}`, (req, res, next) => {
+  try {
+    res.send(getLocalizations(parseID(req.params), req));
+  } catch (error) {
+    next(error);
+  }
+});
 
 app.get("/list", (req, res, next) => {
   try {
@@ -409,15 +402,15 @@ function assertFormat(req, res, ...formats) {
 app.put(`/localizations/${ID}/:key`, async (req, res, next) => {
   try {
     if (assertFormat(req, res, "text/plain")) {
-      const parsed = parseID(req.params);
-      if (!localizations.data[parsed.id]) {
-        localizations.data[parsed.id] = {};
+      const { id } = parseID(req.params);
+      if (!localizations.data[id]) {
+        localizations.data[id] = {};
       }
       const key = req.params.key;
       const body = req.body;
 
-      console.log("set", parsed.id, key, "=", body);
-      localizations.data[parsed.id][key] = body;
+      console.log("set", id, key, "=", body);
+      localizations.data[id][key] = body;
 
       await localizations.write();
       return res.sendStatus(204);
@@ -429,14 +422,14 @@ app.put(`/localizations/${ID}/:key`, async (req, res, next) => {
 
 app.delete(`/localizations/${ID}/:key`, async (req, res, next) => {
   try {
-    const parsed = parseID(req.params);
-    if (!localizations.data[parsed.id]) {
-      localizations.data[parsed.id] = {};
+    const { id } = parseID(req.params);
+    if (!localizations.data[id]) {
+      localizations.data[id] = {};
     }
     const key = req.params.key;
 
-    console.log("delete", parsed.id, key);
-    localizations.data[parsed.id][key] = undefined;
+    console.log("delete", id, key);
+    localizations.data[id][key] = undefined;
 
     await localizations.write();
     return res.sendStatus(204);
@@ -452,7 +445,7 @@ app.delete(`/localizations/${ID}/:key`, async (req, res, next) => {
 app.post(`/import/${ID}`, async (req, res, next) => {
   try {
     if (assertFormat(req, res, "text/plain", "application/json")) {
-      const parsed = parseID(req.params);
+      const { id } = parseID(req.params);
       const type = req.query.type;
       const options = ["replace", "overwrite", "add"];
       if (!type) {
@@ -503,32 +496,32 @@ app.post(`/import/${ID}`, async (req, res, next) => {
           .send("Could not parse any data in the CSV or JSON content");
       }
 
-      if (!localizations.data[parsed.id]) {
-        localizations.data[parsed.id] = {};
+      if (!localizations.data[id]) {
+        localizations.data[id] = {};
       }
 
-      console.log("importing", parsed.id, "with strategy", type);
+      console.log("importing", id, "with strategy", type);
 
       let message;
       switch (type) {
         case "replace":
-          localizations.data[parsed.id] = data;
+          localizations.data[id] = data;
           message = `Imported ${Object.keys(data).length} keys.`;
           break;
 
         case "overwrite":
-          localizations.data[parsed.id] = {
-            ...localizations.data[parsed.id],
+          localizations.data[id] = {
+            ...localizations.data[id],
             ...data,
           };
           message = `Imported ${Object.keys(data).length} keys.`;
           break;
 
         case "add":
-          const originalKeys = Object.keys(localizations.data[parsed.id]);
-          localizations.data[parsed.id] = {
+          const originalKeys = Object.keys(localizations.data[id]);
+          localizations.data[id] = {
             ...data,
-            ...localizations.data[parsed.id],
+            ...localizations.data[id],
           };
           message = `Imported ${
             Object.keys(data).filter((k) => !originalKeys.includes(k)).length
@@ -549,8 +542,8 @@ app.post(`/import/${ID}`, async (req, res, next) => {
 
 app.delete(`/import/${ID}`, async (req, res, next) => {
   try {
-    const parsed = parseID(req.params);
-    localizations.data[parsed.id] = undefined;
+    const { id } = parseID(req.params);
+    localizations.data[id] = undefined;
     await localizations.write();
     return res.send(`Deleted all keys.`);
   } catch (error) {
