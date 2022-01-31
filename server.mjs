@@ -9,6 +9,8 @@ import _ from "lodash";
 
 // <INIT>
 
+class ConfigError extends Error {}
+
 if (process.env.SILENT === "true") {
   console.log = () => {};
 }
@@ -258,27 +260,95 @@ app.get(`/localizations/${ID}`, (req, res, next) => {
   }
 });
 
+function getThemes() {
+  const config = getConfig();
+  if (!config.themes?.length) {
+    throw new ConfigError("No themes are configured.");
+  }
+  return [...config.themes].sort();
+}
+
+function getCombinations() {
+  const config = getConfig();
+  const themes = getThemes();
+
+  let combinations = [];
+  if (Object.keys(config.combinations || {}).length) {
+    combinations.push(
+      ..._.flatten(
+        Object.entries(config.combinations).map(([locale, themes]) =>
+          themes.map((theme) => ({ locale, theme }))
+        )
+      )
+    );
+
+    combinations.push(
+      ...combinations
+        .map(({ locale, theme }) => ({
+          locale: /^[a-z]+/.exec(locale)[0],
+          theme,
+        }))
+        .filter(
+          ({ locale: l, theme: t }, i, a) =>
+            a.findIndex((v) => v.locale === l && v.theme === t) === i
+        )
+    );
+  } else {
+    combinations.push(
+      ..._.flatten(
+        config.locales.map((locale) =>
+          themes.map((theme) => ({ locale, theme }))
+        )
+      )
+    );
+
+    combinations.push(
+      ..._.flatten(
+        config.languages.map((locale) =>
+          themes.map((theme) => ({ locale, theme }))
+        )
+      )
+    );
+  }
+
+  combinations.push(...config.locales.map((locale) => ({ locale })));
+
+  combinations.push(...config.languages.map((locale) => ({ locale })));
+
+  return combinations.sort((a, b) => {
+    const localesCompare = a.locale.localeCompare(b.locale);
+    if (localesCompare === 0) {
+      if (!a.theme && b.theme) {
+        return -1;
+      } else if (!b.theme && a.theme) {
+        return 1;
+      } else if (a.theme && b.theme) {
+        return a.theme.localeCompare(b.theme);
+      }
+    } else {
+      return localesCompare;
+    }
+  });
+}
+
+function getLocales() {
+  const config = getConfig();
+  if (!config.locales?.length) {
+    throw new ConfigError("No locales are configured.");
+  }
+  return [...config.locales].sort();
+}
+
+function getLanguages() {
+  const config = getConfig();
+  if (!config.locales?.length) {
+    throw new ConfigError("No locales are configured.");
+  }
+  return [...config.languages].sort();
+}
+
 app.get("/list", (req, res, next) => {
   try {
-    const config = getConfig();
-
-    let links;
-
-    switch (req.query.query) {
-      case "combinations":
-        if (!Object.keys(config.combinations || {}).length) {
-          return res.status(400).send("No combinations are configured.");
-        }
-      case "all":
-        if (!config.themes?.length) {
-          return res.status(400).send("No themes are configured.");
-        }
-      default:
-        if (!config.locales?.length) {
-          return res.status(400).send("No locales are configured.");
-        }
-    }
-
     const newQuery = Object.entries(
       _.omit({ unblocked: true, ...req.query }, "query")
     )
@@ -290,47 +360,21 @@ app.get("/list", (req, res, next) => {
       }?${newQuery}`;
     const id = (locale, theme) => `${locale}${theme ? "-" + theme : ""}`;
 
+    let links;
     switch (req.query.query) {
       case "combinations":
-        const combinations = _.flatten(
-          Object.entries(config.combinations).map(([locale, themes]) =>
-            themes.map((theme) => ({ locale, theme }))
-          )
-        );
-
-        combinations.push(
-          ...combinations
-            .map(({ locale, theme }) => ({
-              locale: /^[a-z]+/.exec(locale)[0],
-              theme,
-            }))
-            .filter(
-              ({ locale: l, theme: t }, i, a) =>
-                a.findIndex((v) => v.locale === l && v.theme === t) === i
-            )
-        );
-
-        combinations.push(...config.languages.map((locale) => ({ locale })));
-
-        combinations.push(...config.locales.map((locale) => ({ locale })));
-
-        links = _.sortBy(
-          combinations.map(({ locale, theme }) => ({
-            id: id(locale, theme),
-            url: url(locale, theme),
-          })),
-          "id"
-        );
+        links = getCombinations().map(({ locale, theme }) => ({
+          id: id(locale, theme),
+          url: url(locale, theme),
+        }));
         break;
 
       case "locale":
-        links = [...config.locales].sort().map((id) => ({ id, url: url(id) }));
+        links = getLocales().map((id) => ({ id, url: url(id) }));
         break;
 
       default:
-        links = [...config.languages]
-          .sort()
-          .map((id) => ({ id, url: url(id) }));
+        links = getLanguages().map((id) => ({ id, url: url(id) }));
         break;
     }
 
@@ -753,8 +797,12 @@ app.use((_, res) => {
   return res.sendStatus(405);
 });
 app.use((err, _req, res, _next) => {
-  console.error(err);
-  return res.status(500).send("Internal Server Error: " + err.stack);
+  if (err instanceof ConfigError) {
+    return res.status(400).send(err.message);
+  } else {
+    console.error(err);
+    return res.status(500).send("Internal Server Error: " + err.stack);
+  }
 });
 
 app.listen(+process.env.PORT || 8000, () => {
