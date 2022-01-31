@@ -133,7 +133,7 @@ const app = express();
 
 // <ANGULAR>
 
-app.get("/", (req, _, next) => {
+app.get(["/", "/key/:key"], (req, _, next) => {
   req.url = "/index.html";
   next();
 });
@@ -193,7 +193,6 @@ function getThemes() {
 
 function getCombinations() {
   const config = getConfig();
-  const themes = getThemes();
 
   let combinations = [];
   if (Object.keys(config.combinations || {}).length) {
@@ -214,7 +213,9 @@ function getCombinations() {
             a.findIndex((v) => v.lang === l && v.theme === t) === i
         )
     );
-  } else {
+  } else if (config.themes?.length) {
+    const themes = getThemes();
+
     combinations.push(
       ..._.flatten(
         getLocales().map(({ lang, country }) =>

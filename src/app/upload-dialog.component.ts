@@ -144,7 +144,6 @@ export class UploadDialogComponent {
   onChangeFileInput() {
     const files: { [key: string]: File } = this.fileInput.nativeElement.files;
     this.file = files[0];
-    console.log(this.file);
 
     this.file
       .text()

@@ -116,4 +116,15 @@ export class LocalizationsService {
         this.triggerUpdate$.next();
       });
   }
+
+  overrides$ = memoize(
+    (lang: string, key: string) =>
+      this.triggerUpdate$.pipe(
+        switchMap(() =>
+          this.http.get(`/overrides/${lang ? lang + "/" : ""}${key}`)
+        ),
+        shareReplay(1)
+      ),
+    (lang, key) => lang + key
+  );
 }

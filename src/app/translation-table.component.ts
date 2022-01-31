@@ -20,12 +20,12 @@ import { mapValues } from "lodash-es";
 import { combineLatest, Observable } from "rxjs";
 import {
   debounceTime,
+  delay,
   map,
   pluck,
   shareReplay,
   startWith,
   switchMap,
-  tap,
 } from "rxjs/operators";
 
 import { ConfigService } from "../services/config.service";
@@ -349,11 +349,6 @@ export class TranslationTableComponent implements AfterViewInit {
     route: ActivatedRoute,
     router: Router
   ) {
-    route.queryParams.pipe(pluck("lang")).subscribe((lang) => {
-      if (lang && lang !== this.lang.value) {
-        this.lang.setValue(lang);
-      }
-    });
     this.lang.valueChanges
       .pipe(startWith(this.lang.value))
       .subscribe((lang) => {
@@ -371,6 +366,12 @@ export class TranslationTableComponent implements AfterViewInit {
             }
           });
       });
+
+    route.queryParams.pipe(pluck("lang"), delay(0)).subscribe((lang) => {
+      if (lang && lang !== this.lang.value) {
+        this.lang.setValue(lang);
+      }
+    });
 
     this.filtersActive$ = this.filters.valueChanges.pipe(
       map((filters) => Object.values(filters).some((v) => !!v))
@@ -391,11 +392,10 @@ export class TranslationTableComponent implements AfterViewInit {
       debounceTime(500)
     ),
   ]).pipe(
-    tap(console.log),
     switchMap(([lang, filters]) =>
       this.service
         .localizationsWithBase$(lang)
-        .pipe(map((array) => filterTranslations(array, filters)))
+        .pipe(map((array) => filterTranslations(array, filters as Filters)))
     ),
     shareReplay(1)
   );
