@@ -244,34 +244,6 @@ import { UploadDialogComponent } from "./upload-dialog.component";
         color: blue;
       }
 
-      .mat-table {
-        width: 100%;
-      }
-      .mat-row:nth-child(odd) {
-        background-color: #eee;
-      }
-      .mat-cell {
-        padding: 5px;
-      }
-      .mat-header-cell {
-        text-align: center;
-      }
-      td.mat-cell:first-of-type,
-      th.mat-header-cell:first-of-type {
-        padding-left: 5px;
-      }
-      td.mat-cell:last-of-type,
-      th.mat-header-cell:last-of-type {
-        padding-right: 5px;
-      }
-      .unselectable {
-        -webkit-touch-callout: none;
-        -webkit-user-select: none;
-        -khtml-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-      }
       .center {
         text-align: center;
       }

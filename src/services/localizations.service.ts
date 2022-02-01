@@ -121,7 +121,15 @@ export class LocalizationsService {
     (lang: string, key: string) =>
       this.triggerUpdate$.pipe(
         switchMap(() =>
-          this.http.get(`/overrides/${lang ? lang + "/" : ""}${key}`)
+          this.http.get<
+            {
+              id: string;
+              lang: string;
+              url: string;
+              interpolated: string;
+              value: string;
+            }[]
+          >(`/overrides/${lang ? lang + "/" : ""}${key}`)
         ),
         shareReplay(1)
       ),
