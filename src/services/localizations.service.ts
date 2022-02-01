@@ -2,7 +2,14 @@ import { HttpClient, HttpHeaders } from "@angular/common/http";
 import { Injectable } from "@angular/core";
 import { memoize } from "lodash-es";
 import { BehaviorSubject, combineLatest, Observable } from "rxjs";
-import { filter, map, pairwise, shareReplay, switchMap } from "rxjs/operators";
+import {
+  filter,
+  map,
+  pairwise,
+  shareReplay,
+  switchMap,
+  withLatestFrom,
+} from "rxjs/operators";
 
 import { ConfigService } from "./config.service";
 import { NotificationService } from "./notification.service";
@@ -18,14 +25,16 @@ export interface LocalizationWithBaseType {
 }
 
 export interface OverridesType {
+  key: string;
+  ignored: boolean;
   id: string;
   lang: string;
   country: string;
   locale: string;
   theme: string;
-  url: string;
   interpolated: string;
   value: string;
+  updateLang: string;
 }
 
 @Injectable({ providedIn: "root" })
@@ -63,6 +72,8 @@ export class LocalizationsService {
     return typeof obj === "string" ? obj : JSON.stringify(obj);
   }
 
+  private ignored$ = this.config.select("ignored").pipe(map((x) => x || []));
+
   localizationsWithBase$ = (
     lang: string
   ): Observable<LocalizationWithBaseType[]> =>
@@ -71,7 +82,7 @@ export class LocalizationsService {
         .select("baseLang")
         .pipe(switchMap((baseLang) => this.localizations$(baseLang))),
       this.localizations$(lang),
-      this.config.select("ignored").pipe(map((x) => x || [])),
+      this.ignored$,
       this.overridesList$(lang),
     ]).pipe(
       map(([base, loc, ignored, overridden]) =>
@@ -142,9 +153,16 @@ export class LocalizationsService {
     (lang: string, key: string) =>
       this.triggerUpdate$.pipe(
         switchMap(() =>
-          this.http.get<OverridesType[]>(
-            `/overrides/${lang ? lang + "/" : ""}${key}`
-          )
+          this.http
+            .get<OverridesType[]>(`/overrides/${lang ? lang + "/" : ""}${key}`)
+            .pipe(
+              withLatestFrom(
+                this.ignored$.pipe(map((ignored) => ignored.includes(key)))
+              ),
+              map(([overrides, ignored]) =>
+                overrides.map((o) => ({ ...o, key, ignored }))
+              )
+            )
         ),
         shareReplay(1)
       ),

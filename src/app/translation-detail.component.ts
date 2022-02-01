@@ -1,10 +1,13 @@
 import { Component } from "@angular/core";
 import { FormBuilder, FormControl } from "@angular/forms";
+import { MatDialog, MatDialogRef } from "@angular/material/dialog";
 import { ActivatedRoute, Router } from "@angular/router";
 import {
   faArrowCircleLeft,
   faBan,
+  faEdit,
   faFilter,
+  faTrash,
 } from "@fortawesome/free-solid-svg-icons";
 import {
   combineLatest,
@@ -18,7 +21,15 @@ import {
 
 import { ConfigService } from "../services/config.service";
 import { filterOverrides, OverridesFilters } from "../services/filters";
-import { LocalizationsService } from "../services/localizations.service";
+import {
+  LocalizationsService,
+  LocalizationWithBaseType,
+  OverridesType,
+} from "../services/localizations.service";
+import { NotificationService } from "../services/notification.service";
+
+import { ConfirmDialogComponent } from "./confirm-dialog.component";
+import { EditDialogComponent } from "./edit-dialog.component";
 
 @Component({
   selector: "app-translation-detail",
@@ -106,18 +117,49 @@ import { LocalizationsService } from "../services/localizations.service";
       <table mat-table [dataSource]="overrides$">
         <ng-container *ngFor="let column of columns">
           <ng-container [matColumnDef]="column.id">
-            <th mat-header-cell *matHeaderCellDef>
-              <span>{{ column.value }}</span>
+            <th
+              mat-header-cell
+              *matHeaderCellDef
+              [ngClass]="{ 'icon-column': isIconColumn(column.id) }"
+            >
+              <ng-container [ngSwitch]="true">
+                <ng-container *ngSwitchCase="isIconColumn(column.id)">
+                </ng-container>
+                <ng-container *ngSwitchDefault>
+                  <span>{{ column.value }}</span>
+                </ng-container>
+              </ng-container>
             </th>
-            <td mat-cell *matCellDef="let element">
-              <span
-                class="unselectable"
-                [ngClass]="{ 'value-interpolated': !element.value }"
-                ><ng-container
-                  *ngIf="element[column.id] !== undefined; else undef"
-                  >{{ element[column.id] }}</ng-container
-                ><ng-template #undef><i>undefined</i></ng-template>
-              </span>
+            <td
+              mat-cell
+              *matCellDef="let element"
+              [ngClass]="{ 'icon-column': isIconColumn(column.id) }"
+            >
+              <ng-container [ngSwitch]="true">
+                <ng-container *ngSwitchCase="column.id === 'edit'">
+                  <a class="icon" (click)="edit(element)"
+                    ><fa-icon [icon]="faEdit"></fa-icon
+                  ></a>
+                </ng-container>
+                <ng-container *ngSwitchCase="column.id === 'delete'">
+                  <a
+                    *ngIf="element.value"
+                    class="icon"
+                    (click)="remove(element)"
+                    ><fa-icon [icon]="faTrash"></fa-icon
+                  ></a>
+                </ng-container>
+                <ng-container *ngSwitchDefault>
+                  <span
+                    class="unselectable"
+                    [ngClass]="{ 'value-interpolated': !element.value }"
+                    ><ng-container
+                      *ngIf="element[column.id] !== undefined; else undef"
+                      >{{ element[column.id] }}</ng-container
+                    ><ng-template #undef><i>undefined</i></ng-template>
+                  </span>
+                </ng-container>
+              </ng-container>
             </td>
           </ng-container>
         </ng-container>
@@ -184,12 +226,14 @@ export class TranslationDetailComponent {
     )
   );
 
-  displayedColumns = ["id", "interpolated"];
-
   columns = [
     { id: "id", value: "ID" },
-    { id: "interpolated", value: "" },
+    { id: "edit", value: "" },
+    { id: "interpolated", value: "Value" },
+    { id: "delete", value: "" },
   ];
+
+  displayedColumns = this.columns.map((c) => c.id);
 
   filters = this.fb.group({
     type: this.fb.control(undefined),
@@ -208,13 +252,17 @@ export class TranslationDetailComponent {
   faArrowCircleLeft = faArrowCircleLeft;
   faFilter = faFilter;
   faBan = faBan;
+  faEdit = faEdit;
+  faTrash = faTrash;
 
   constructor(
     private route: ActivatedRoute,
     private service: LocalizationsService,
     public config: ConfigService,
     private fb: FormBuilder,
-    router: Router
+    private dialog: MatDialog,
+    router: Router,
+    private notification: NotificationService
   ) {
     route.queryParams.pipe(pluck("lang"), delay(100)).subscribe((lang) => {
       if (lang !== this.lang.value) {
@@ -224,6 +272,55 @@ export class TranslationDetailComponent {
 
     this.lang.valueChanges.subscribe((lang) => {
       router.navigate([], { queryParams: { lang }, relativeTo: route });
+    });
+  }
+
+  isIconColumn(id: string) {
+    return this.columns.find((c) => c.id === id)?.value === "";
+  }
+
+  edit(element: OverridesType) {
+    if (element.ignored) {
+      this.notification.warning(
+        `The translation for "${element.key}" is protected and cannot be changed here.`
+      );
+      return;
+    }
+    if (this.config.get("baseLang") === element.updateLang) {
+      this.notification.warning(`Editing base translations is not supported.`);
+      return;
+    }
+
+    const translateElement: LocalizationWithBaseType = {
+      base: element.interpolated,
+      key: element.key,
+      tr: element.interpolated,
+    };
+
+    const ref: MatDialogRef<EditDialogComponent, string> = this.dialog.open(
+      EditDialogComponent,
+      {
+        data: {
+          element: translateElement,
+        },
+      }
+    );
+
+    ref.afterClosed().subscribe((newTranslation) => {
+      if (newTranslation !== undefined) {
+        this.service.set(element.updateLang, element.key, newTranslation);
+      }
+    });
+  }
+
+  remove(element: OverridesType) {
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      data: `Really delete translation '${element.value}' for key '${element.key}'`,
+    });
+    ref.afterClosed().subscribe((confirmation) => {
+      if (confirmation) {
+        this.service.delete(element.updateLang, element.key);
+      }
     });
   }
 
