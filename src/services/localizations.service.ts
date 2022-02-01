@@ -133,6 +133,6 @@ export class LocalizationsService {
         ),
         shareReplay(1)
       ),
-    (lang, key) => lang + key
+    (lang, key) => `${lang}-${key}`
   );
 }

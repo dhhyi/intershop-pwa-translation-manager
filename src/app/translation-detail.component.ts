@@ -2,7 +2,7 @@ import { Component } from "@angular/core";
 import { FormBuilder } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
 import { faArrowCircleLeft } from "@fortawesome/free-solid-svg-icons";
-import { combineLatest, delay, map, pluck, startWith, switchMap } from "rxjs";
+import { combineLatest, delay, map, pluck, switchMap } from "rxjs";
 
 import { ConfigService } from "../services/config.service";
 import { LocalizationsService } from "../services/localizations.service";
@@ -39,11 +39,7 @@ import { LocalizationsService } from "../services/localizations.service";
     </mat-toolbar>
 
     <div>
-      <table
-        *ngIf="(overrides$ | async)?.length"
-        mat-table
-        [dataSource]="overrides$"
-      >
+      <table mat-table [dataSource]="overrides$">
         <ng-container *ngFor="let column of columns">
           <ng-container [matColumnDef]="column.id">
             <th mat-header-cell *matHeaderCellDef>
@@ -103,10 +99,9 @@ export class TranslationDetailComponent {
     .select("languages")
     .pipe(map((langs) => [undefined, ...langs]));
 
-  overrides$ = combineLatest([
-    this.lang.valueChanges.pipe(startWith(this.lang.value)),
-    this.key$,
-  ]).pipe(switchMap(([lang, key]) => this.service.overrides$(lang, key)));
+  overrides$ = combineLatest([this.lang.valueChanges, this.key$]).pipe(
+    switchMap(([lang, key]) => this.service.overrides$(lang, key))
+  );
 
   displayedColumns = ["id", "interpolated"];
 
@@ -124,16 +119,14 @@ export class TranslationDetailComponent {
     private fb: FormBuilder,
     router: Router
   ) {
-    this.lang.valueChanges
-      .pipe(startWith(this.lang.value))
-      .subscribe((lang) => {
-        router.navigate([], { queryParams: { lang }, relativeTo: route });
-      });
-
-    route.queryParams.pipe(pluck("lang"), delay(0)).subscribe((lang) => {
-      if (lang && lang !== this.lang.value) {
+    route.queryParams.pipe(pluck("lang"), delay(100)).subscribe((lang) => {
+      if (lang !== this.lang.value) {
         this.lang.setValue(lang);
       }
+    });
+
+    this.lang.valueChanges.subscribe((lang) => {
+      router.navigate([], { queryParams: { lang }, relativeTo: route });
     });
   }
 }
