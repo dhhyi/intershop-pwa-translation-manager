@@ -270,8 +270,7 @@ import { UploadDialogComponent } from "./upload-dialog.component";
         width: 10px;
       }
       td:not(.icon-column) {
-        padding-left: 5px;
-        padding-right: 5px;
+        padding: 5px;
       }
     `,
   ],

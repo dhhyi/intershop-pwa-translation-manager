@@ -82,6 +82,15 @@ import { LocalizationsService } from "../services/localizations.service";
       .value-interpolated {
         color: lightgray;
       }
+
+      td.icon-column {
+        padding-left: 10px;
+        padding-right: 10px;
+        width: 10px;
+      }
+      td:not(.icon-column) {
+        padding: 5px;
+      }
     `,
   ],
 })
