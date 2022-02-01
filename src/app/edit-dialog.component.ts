@@ -122,7 +122,9 @@ export class EditDialogComponent implements OnDestroy {
   interpolationBase$: Observable<SafeHtml>;
   interpolation$: Observable<SafeHtml>;
 
-  replaceOnPaste$ = new BehaviorSubject(true);
+  replaceOnPaste$ = new BehaviorSubject(
+    sessionStorage.getItem("REPLACE_ON_PASTE") === "true"
+  );
 
   private destroy$ = new Subject();
 
@@ -165,6 +167,10 @@ export class EditDialogComponent implements OnDestroy {
       map(([tr, p]) => this.renderTranslation(tr, p)),
       map((interpolated) => sanitizer.bypassSecurityTrustHtml(interpolated))
     );
+
+    this.replaceOnPaste$.subscribe((value) => {
+      sessionStorage.setItem("REPLACE_ON_PASTE", value?.toString());
+    });
   }
 
   private renderTranslation(tr: string, params: object): string {
