@@ -1,3 +1,5 @@
+const { default: axios } = require("axios");
+
 describe("Server Overrides", () => {
   expect.addSnapshotSerializer({
     test: (v) => typeof v?.id === "string" && typeof v?.url === "string",
@@ -78,6 +80,28 @@ describe("Server Overrides", () => {
       expect(res.data).toMatchInlineSnapshot(
         `"Language jp is not configured."`
       );
+    });
+
+    describe("after deleting an override", () => {
+      beforeAll(async () => {
+        const res = await axios.delete("/localizations/de_DE/b2b/dummy");
+        expect(res.status).toEqual(204);
+      });
+
+      it("should return overrides for configured key in language if given", async () => {
+        const res = await axios.get("/overrides/de/dummy");
+        expect(res).toHaveProperty("status", 200);
+        expect(res.data).toMatchInlineSnapshot(`
+          Array [
+            de         * Translated base value,
+            de/b2b       Translated base value,
+            de/b2c     * b2c language-theme override,
+            de_DE        Translated base value,
+            de_DE/b2b    Translated base value,
+            de_DE/b2c    b2c language-theme override,
+          ]
+        `);
+      });
     });
   });
 

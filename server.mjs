@@ -428,7 +428,7 @@ app.delete(`/localizations/${ID}/:key`, async (req, res, next) => {
     const key = req.params.key;
 
     console.log("delete", id, key);
-    localizations.data[id][key] = undefined;
+    delete localizations.data[id][key];
 
     await localizations.write();
     return res.sendStatus(204);
