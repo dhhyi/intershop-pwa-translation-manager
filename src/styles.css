@@ -6,6 +6,10 @@ body {
   font-family: Roboto, "Helvetica Neue", sans-serif;
 }
 
+.ng-fa-icon {
+  color: black;
+}
+
 .mat-table {
   width: 100%;
 }

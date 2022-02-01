@@ -14,6 +14,7 @@ import {
   faFileUpload,
   faFilter,
   faBan,
+  faSitemap,
 } from "@fortawesome/free-solid-svg-icons";
 import escapeStringRegexp from "escape-string-regexp";
 import { mapValues } from "lodash-es";
@@ -140,6 +141,7 @@ import { UploadDialogComponent } from "./upload-dialog.component";
         <table
           *ngIf="(translations$ | async)?.length || (lang.valueChanges | async)"
           mat-table
+          [trackBy]="trackByFn"
           [dataSource]="pagedTranslations$"
         >
           <ng-container *ngFor="let column of columns">
@@ -149,6 +151,8 @@ import { UploadDialogComponent } from "./upload-dialog.component";
                   <ng-container *ngSwitchCase="column.id === 'edit'">
                   </ng-container>
                   <ng-container *ngSwitchCase="column.id === 'delete'">
+                  </ng-container>
+                  <ng-container *ngSwitchCase="column.id === 'override'">
                   </ng-container>
                   <ng-container *ngSwitchDefault>
                     <mat-form-field
@@ -187,6 +191,14 @@ import { UploadDialogComponent } from "./upload-dialog.component";
                       class="icon"
                       (click)="remove(element)"
                       ><fa-icon [icon]="faTrash"></fa-icon
+                    ></a>
+                  </ng-container>
+                  <ng-container *ngSwitchCase="column.id === 'override'">
+                    <a
+                      class="icon"
+                      [routerLink]="['/key', element.key]"
+                      queryParamsHandling="preserve"
+                      ><fa-icon [icon]="faSitemap"></fa-icon
                     ></a>
                   </ng-container>
                   <ng-container *ngSwitchDefault>
@@ -258,6 +270,7 @@ export class TranslationTableComponent implements AfterViewInit {
   pagedTranslations$: Observable<LocalizationWithBaseType[]>;
 
   columns = [
+    { id: "override", value: "" },
     { id: "key", value: "Translation Key" },
     { id: "base", value: "Base Language" },
     { id: "edit", value: "" },
@@ -289,7 +302,9 @@ export class TranslationTableComponent implements AfterViewInit {
   ]).pipe(
     map(([base, selected]) =>
       base === selected
-        ? this.columns.filter((c) => ["key", "base"].some((id) => c.id === id))
+        ? this.columns.filter((c) =>
+            ["override", "key", "base"].some((id) => c.id === id)
+          )
         : this.columns
     ),
     map((cols) => cols.map((x) => x.id))
@@ -303,6 +318,7 @@ export class TranslationTableComponent implements AfterViewInit {
   faFileUpload = faFileUpload;
   faFilter = faFilter;
   faBan = faBan;
+  faSitemap = faSitemap;
 
   constructor(
     private fb: FormBuilder,
