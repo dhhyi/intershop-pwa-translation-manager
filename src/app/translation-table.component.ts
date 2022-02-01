@@ -146,13 +146,13 @@ import { UploadDialogComponent } from "./upload-dialog.component";
         >
           <ng-container *ngFor="let column of columns">
             <ng-container [matColumnDef]="column.id">
-              <th mat-header-cell *matHeaderCellDef>
+              <th
+                mat-header-cell
+                *matHeaderCellDef
+                [ngClass]="{ 'icon-column': isIconColumn(column.id) }"
+              >
                 <ng-container [ngSwitch]="true">
-                  <ng-container *ngSwitchCase="column.id === 'edit'">
-                  </ng-container>
-                  <ng-container *ngSwitchCase="column.id === 'delete'">
-                  </ng-container>
-                  <ng-container *ngSwitchCase="column.id === 'override'">
+                  <ng-container *ngSwitchCase="isIconColumn(column.id)">
                   </ng-container>
                   <ng-container *ngSwitchDefault>
                     <mat-form-field
@@ -178,7 +178,11 @@ import { UploadDialogComponent } from "./upload-dialog.component";
                   </ng-container>
                 </ng-container>
               </th>
-              <td mat-cell *matCellDef="let element">
+              <td
+                mat-cell
+                *matCellDef="let element"
+                [ngClass]="{ 'icon-column': isIconColumn(column.id) }"
+              >
                 <ng-container [ngSwitch]="true">
                   <ng-container *ngSwitchCase="column.id === 'edit'">
                     <a class="icon" (click)="edit(element)"
@@ -258,6 +262,16 @@ import { UploadDialogComponent } from "./upload-dialog.component";
 
       .center {
         text-align: center;
+      }
+
+      td.icon-column {
+        padding-left: 10px;
+        padding-right: 10px;
+        width: 10px;
+      }
+      td:not(.icon-column) {
+        padding-left: 5px;
+        padding-right: 5px;
       }
     `,
   ],
@@ -404,6 +418,10 @@ export class TranslationTableComponent implements AfterViewInit {
 
   trackByFn(idx: number) {
     return idx;
+  }
+
+  isIconColumn(id: string) {
+    return this.columns.find((c) => c.id === id)?.value === "";
   }
 
   edit(element: LocalizationWithBaseType) {

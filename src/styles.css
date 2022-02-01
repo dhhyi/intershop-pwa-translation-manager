@@ -24,11 +24,11 @@ body {
 }
 td.mat-cell:first-of-type,
 th.mat-header-cell:first-of-type {
-  padding-left: 5px;
+  padding-left: 15px !important;
 }
 td.mat-cell:last-of-type,
 th.mat-header-cell:last-of-type {
-  padding-right: 5px;
+  padding-right: 15px !important;
 }
 .unselectable {
   -webkit-touch-callout: none;
