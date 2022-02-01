@@ -1,6 +1,7 @@
 import { Component } from "@angular/core";
 import { FormBuilder } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
+import { faArrowCircleLeft } from "@fortawesome/free-solid-svg-icons";
 import { combineLatest, delay, map, pluck, startWith, switchMap } from "rxjs";
 
 import { ConfigService } from "../services/config.service";
@@ -10,6 +11,14 @@ import { LocalizationsService } from "../services/localizations.service";
   selector: "app-translation-detail",
   template: `
     <mat-toolbar>
+      <button
+        mat-icon-button
+        aria-label="Back to table"
+        routerLink="/"
+        queryParamsHandling="preserve"
+      >
+        <fa-icon [icon]="faArrowCircleLeft" size="lg"></fa-icon>
+      </button>
       <mat-form-field appearance="standard">
         <mat-label>Language</mat-label>
         <mat-select [formControl]="lang">
@@ -96,6 +105,8 @@ export class TranslationDetailComponent {
     { id: "id", value: "ID" },
     { id: "interpolated", value: "" },
   ];
+
+  faArrowCircleLeft = faArrowCircleLeft;
 
   constructor(
     private route: ActivatedRoute,
