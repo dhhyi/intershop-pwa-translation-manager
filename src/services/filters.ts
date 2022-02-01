@@ -9,6 +9,7 @@ export type Filters = Partial<
     onlyDupes: boolean;
     onlyEmpty: boolean;
     onlyComplex: boolean;
+    onlyOverridden: boolean;
   }
 >;
 
@@ -28,10 +29,12 @@ export function filterTranslations(
         (filters.onlyEmpty === true && e.tr?.trim() === "") ||
         (filters.onlyComplex === true &&
           (containsComplex(e.base) || containsComplex(e.tr))) ||
+        (filters.onlyOverridden === true && e.overridden) ||
         (!filters.onlyMissing &&
           !filters.onlyDupes &&
           !filters.onlyEmpty &&
-          !filters.onlyComplex)
+          !filters.onlyComplex &&
+          !filters.onlyOverridden)
     )
     .filter(
       (e) =>

@@ -106,6 +106,11 @@ import { UploadDialogComponent } from "./upload-dialog.component";
               >Complex</mat-slide-toggle
             >
           </div>
+          <div mat-menu-item>
+            <mat-slide-toggle [formControl]="filters.controls.onlyOverridden"
+              >Overrides</mat-slide-toggle
+            >
+          </div>
         </mat-menu>
 
         <button
@@ -302,6 +307,7 @@ export class TranslationTableComponent implements AfterViewInit {
     onlyDupes: this.fb.control(undefined),
     onlyEmpty: this.fb.control(undefined),
     onlyComplex: this.fb.control(undefined),
+    onlyOverridden: this.fb.control(undefined),
   }) as unknown as {
     controls: Record<keyof Filters, FormControl>;
     value: Filters;

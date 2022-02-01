@@ -12,6 +12,12 @@ describe("Translation Filtering", () => {
     { key: "missing", base: "missing key", tr: undefined, missing: true },
     { key: "dupe", base: "dupe key", tr: "dupe key", dupe: true },
     { key: "empty", base: "empty key", tr: "" },
+    {
+      key: "overridden",
+      base: "overridden key",
+      tr: "overridden key",
+      overridden: true,
+    },
     { key: "variable", base: "{{ 0 }}", tr: "{{ 0 }}" },
     {
       key: "plural",
@@ -41,6 +47,7 @@ describe("Translation Filtering", () => {
         missing,
         dupe,
         empty,
+        overridden,
         variable,
         plural,
         select,
@@ -76,6 +83,15 @@ describe("Translation Filtering", () => {
     `);
   });
 
+  it("should return overridden keys when filtering for it", () => {
+    expect(filterTranslations(data, { onlyOverridden: true }))
+      .toMatchInlineSnapshot(`
+      Array [
+        overridden,
+      ]
+    `);
+  });
+
   it("should return complex keys when filtering for it", () => {
     expect(filterTranslations(data, { onlyComplex: true }))
       .toMatchInlineSnapshot(`
@@ -104,6 +120,7 @@ describe("Translation Filtering", () => {
         missing,
         dupe,
         empty,
+        overridden,
       ]
     `);
   });
@@ -114,6 +131,7 @@ describe("Translation Filtering", () => {
       Array [
         simple,
         dupe,
+        overridden,
       ]
     `);
   });
