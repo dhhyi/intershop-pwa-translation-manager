@@ -9,6 +9,9 @@ body {
 .ng-fa-icon {
   color: black;
 }
+.ng-fa-icon.grey-icon {
+  color: lightgrey;
+}
 
 .mat-table {
   width: 100%;

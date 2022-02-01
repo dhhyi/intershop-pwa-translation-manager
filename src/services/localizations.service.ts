@@ -14,6 +14,7 @@ export interface LocalizationWithBaseType {
   missing?: boolean;
   dupe?: boolean;
   ignored?: boolean;
+  overridden?: boolean;
 }
 
 @Injectable({ providedIn: "root" })
@@ -60,8 +61,9 @@ export class LocalizationsService {
         .pipe(switchMap((baseLang) => this.localizations$(baseLang))),
       this.localizations$(lang),
       this.config.select("ignored").pipe(map((x) => x || [])),
+      this.overridesList$(lang),
     ]).pipe(
-      map(([base, loc, ignored]) =>
+      map(([base, loc, ignored, overridden]) =>
         Object.keys(base).map<LocalizationWithBaseType>((key) => ({
           key,
           base: this.convertToString(base[key]),
@@ -69,6 +71,7 @@ export class LocalizationsService {
           missing: typeof loc[key] !== "string",
           dupe: loc[key] === base[key],
           ignored: ignored.includes(key),
+          overridden: overridden.includes(key),
         }))
       )
     );
@@ -116,6 +119,13 @@ export class LocalizationsService {
         this.triggerUpdate$.next();
       });
   }
+
+  private overridesList$ = memoize((lang: string) =>
+    this.triggerUpdate$.pipe(
+      switchMap(() => this.http.get<string[]>(`/overrides-list/${lang}`)),
+      shareReplay(1)
+    )
+  );
 
   overrides$ = memoize(
     (lang: string, key: string) =>

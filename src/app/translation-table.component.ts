@@ -202,7 +202,10 @@ import { UploadDialogComponent } from "./upload-dialog.component";
                       class="icon"
                       [routerLink]="['/key', element.key]"
                       queryParamsHandling="preserve"
-                      ><fa-icon [icon]="faSitemap"></fa-icon
+                      ><fa-icon
+                        [icon]="faSitemap"
+                        [ngClass]="{ 'grey-icon': !element.overridden }"
+                      ></fa-icon
                     ></a>
                   </ng-container>
                   <ng-container *ngSwitchDefault>
