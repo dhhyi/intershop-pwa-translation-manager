@@ -1,10 +1,23 @@
 import { Component } from "@angular/core";
-import { FormBuilder } from "@angular/forms";
+import { FormBuilder, FormControl } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
-import { faArrowCircleLeft } from "@fortawesome/free-solid-svg-icons";
-import { combineLatest, delay, map, pluck, switchMap } from "rxjs";
+import {
+  faArrowCircleLeft,
+  faBan,
+  faFilter,
+} from "@fortawesome/free-solid-svg-icons";
+import {
+  combineLatest,
+  delay,
+  map,
+  Observable,
+  pluck,
+  startWith,
+  switchMap,
+} from "rxjs";
 
 import { ConfigService } from "../services/config.service";
+import { filterOverrides, OverridesFilters } from "../services/filters";
 import { LocalizationsService } from "../services/localizations.service";
 
 @Component({
@@ -36,6 +49,57 @@ import { LocalizationsService } from "../services/localizations.service";
           [disabled]="true"
         />
       </mat-form-field>
+      <button
+        mat-icon-button
+        [matMenuTriggerFor]="filterMenu"
+        aria-label="Filters"
+        class="filter-button"
+        [ngClass]="{ 'filters-active': filtersActive$ | async }"
+      >
+        <fa-icon [icon]="faFilter" size="lg"></fa-icon>
+      </button>
+      <mat-menu #filterMenu="matMenu">
+        <a
+          mat-menu-item
+          [disabled]="(filtersActive$ | async) !== true"
+          (click)="clearAllFilters()"
+        >
+          <fa-icon [icon]="faBan"></fa-icon>
+          <span>Clear Filters</span>
+        </a>
+
+        <mat-radio-group
+          aria-label="Select an option"
+          [formControl]="filters.controls.type"
+        >
+          <div mat-menu-item>
+            <mat-radio-button [value]="undefined" [checked]="true"
+              >all</mat-radio-button
+            >
+          </div>
+          <div mat-menu-item>
+            <mat-radio-button value="lang">Languages</mat-radio-button>
+          </div>
+          <div mat-menu-item>
+            <mat-radio-button value="locale">Locales</mat-radio-button>
+          </div>
+          <ng-container *ngIf="(config.select('themes') | async)?.length">
+            <div mat-menu-item>
+              <mat-radio-button value="theme">Themes</mat-radio-button>
+            </div>
+            <div mat-menu-item>
+              <mat-radio-button value="lang+theme"
+                >Language x Themes</mat-radio-button
+              >
+            </div>
+            <div mat-menu-item>
+              <mat-radio-button value="locale+theme"
+                >Locale x Themes</mat-radio-button
+              >
+            </div>
+          </ng-container>
+        </mat-radio-group>
+      </mat-menu>
     </mat-toolbar>
 
     <div>
@@ -67,11 +131,21 @@ import { LocalizationsService } from "../services/localizations.service";
     `
       .mat-toolbar {
         height: unset;
-        justify-content: flex-start;
+        justify-content: space-between;
       }
       .mat-toolbar > * {
         margin-right: 24px;
       }
+      .filter-button {
+        margin-left: auto;
+      }
+      .mat-menu-item > .ng-fa-icon {
+        margin-right: 20px;
+      }
+      .filters-active .ng-fa-icon {
+        color: blue;
+      }
+
       .key-input {
         min-width: 50%;
       }
@@ -100,7 +174,14 @@ export class TranslationDetailComponent {
     .pipe(map((langs) => [undefined, ...langs]));
 
   overrides$ = combineLatest([this.lang.valueChanges, this.key$]).pipe(
-    switchMap(([lang, key]) => this.service.overrides$(lang, key))
+    switchMap(([lang, key]) =>
+      combineLatest([
+        this.service.overrides$(lang, key),
+        this.filters.valueChanges.pipe(startWith(this.filters.value)),
+      ]).pipe(
+        map(([overrides, filters]) => filterOverrides(overrides, filters))
+      )
+    )
   );
 
   displayedColumns = ["id", "interpolated"];
@@ -110,7 +191,23 @@ export class TranslationDetailComponent {
     { id: "interpolated", value: "" },
   ];
 
+  filters = this.fb.group({
+    type: this.fb.control(undefined),
+  }) as unknown as {
+    controls: Record<keyof OverridesFilters, FormControl>;
+    value: OverridesFilters;
+    valueChanges: Observable<OverridesFilters>;
+    get: (id: string) => FormControl;
+    setValue: (value: OverridesFilters) => void;
+  };
+
+  filtersActive$ = this.filters.valueChanges.pipe(
+    map((filters) => Object.values(filters).some((v) => !!v))
+  );
+
   faArrowCircleLeft = faArrowCircleLeft;
+  faFilter = faFilter;
+  faBan = faBan;
 
   constructor(
     private route: ActivatedRoute,
@@ -128,5 +225,14 @@ export class TranslationDetailComponent {
     this.lang.valueChanges.subscribe((lang) => {
       router.navigate([], { queryParams: { lang }, relativeTo: route });
     });
+  }
+
+  clearAllFilters() {
+    this.filters.setValue(
+      Object.keys(this.filters.value).reduce(
+        (acc, key) => ({ ...acc, [key]: null }),
+        {} as OverridesFilters
+      )
+    );
   }
 }

@@ -30,7 +30,7 @@ import {
 } from "rxjs/operators";
 
 import { ConfigService } from "../services/config.service";
-import { Filters, filterTranslations } from "../services/filters";
+import { TranslationFilters, filterTranslations } from "../services/filters";
 import {
   LocalizationsService,
   LocalizationWithBaseType,
@@ -309,11 +309,11 @@ export class TranslationTableComponent implements AfterViewInit {
     onlyComplex: this.fb.control(undefined),
     onlyOverridden: this.fb.control(undefined),
   }) as unknown as {
-    controls: Record<keyof Filters, FormControl>;
-    value: Filters;
-    valueChanges: Observable<Filters>;
+    controls: Record<keyof TranslationFilters, FormControl>;
+    value: TranslationFilters;
+    valueChanges: Observable<TranslationFilters>;
     get: (id: string) => FormControl;
-    setValue: (value: Filters) => void;
+    setValue: (value: TranslationFilters) => void;
   };
 
   filtersActive$: Observable<boolean>;
@@ -398,7 +398,11 @@ export class TranslationTableComponent implements AfterViewInit {
     switchMap(([lang, filters]) =>
       this.service
         .localizationsWithBase$(lang)
-        .pipe(map((array) => filterTranslations(array, filters as Filters)))
+        .pipe(
+          map((array) =>
+            filterTranslations(array, filters as TranslationFilters)
+          )
+        )
     ),
     shareReplay(1)
   );

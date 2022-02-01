@@ -17,6 +17,17 @@ export interface LocalizationWithBaseType {
   overridden?: boolean;
 }
 
+export interface OverridesType {
+  id: string;
+  lang: string;
+  country: string;
+  locale: string;
+  theme: string;
+  url: string;
+  interpolated: string;
+  value: string;
+}
+
 @Injectable({ providedIn: "root" })
 export class LocalizationsService {
   constructor(
@@ -131,15 +142,9 @@ export class LocalizationsService {
     (lang: string, key: string) =>
       this.triggerUpdate$.pipe(
         switchMap(() =>
-          this.http.get<
-            {
-              id: string;
-              lang: string;
-              url: string;
-              interpolated: string;
-              value: string;
-            }[]
-          >(`/overrides/${lang ? lang + "/" : ""}${key}`)
+          this.http.get<OverridesType[]>(
+            `/overrides/${lang ? lang + "/" : ""}${key}`
+          )
         ),
         shareReplay(1)
       ),

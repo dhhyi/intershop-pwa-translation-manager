@@ -11,6 +11,7 @@ export interface ConfigType {
   block: boolean;
   ignored: string[];
   languages: string[];
+  themes: string[];
   maintenance: boolean;
   translateAvailable: boolean;
 }

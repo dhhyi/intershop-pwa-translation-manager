@@ -471,7 +471,7 @@ app.get("/overrides/:lang?/:key", (req, res, next) => {
     }
 
     const makeLink = (params) => {
-      const { id, lang, locale, theme, path } = parseID(params);
+      const { id, lang, locale, theme, path, country } = parseID(params);
       let updateLang = locale || lang;
       if (theme) {
         updateLang += "/" + theme;
@@ -481,6 +481,7 @@ app.get("/overrides/:lang?/:key", (req, res, next) => {
         id,
         updateLang,
         lang,
+        country,
         locale,
         theme,
         url: `${base}/localizations/${updateLang}/${req.params.key}`,
