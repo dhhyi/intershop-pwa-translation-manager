@@ -2,9 +2,9 @@ describe("Server Overrides", () => {
   expect.addSnapshotSerializer({
     test: (v) => typeof v?.id === "string" && typeof v?.url === "string",
     print: (v) =>
-      `${v.id.padEnd(10, " ")} ${v.lang.padEnd(10, " ")} ${
-        !!v.value ? "*" : " "
-      } ${v.interpolated}`,
+      `${v.updateLang.padEnd(10, " ")} ${!!v.value ? "*" : " "} ${
+        v.interpolated
+      }`,
   });
 
   const data = [
@@ -35,45 +35,79 @@ describe("Server Overrides", () => {
     }
   });
 
-  it("should return all overrides for configured key if no language was given", async () => {
-    const res = await axios.get("/overrides/dummy");
-    expect(res).toHaveProperty("status", 200);
-    expect(res.data).toMatchInlineSnapshot(`
-      Array [
-        de         de         * Translated base value,
-        de-b2b     de/b2b       Translated base value,
-        de-b2c     de/b2c     * b2c language-theme override,
-        de_DE      de_DE        Translated base value,
-        de_DE-b2b  de_DE/b2b  * b2b locale-theme override,
-        de_DE-b2c  de_DE/b2c    b2c language-theme override,
-        en         en         * English base value,
-        en-b2b     en/b2b     * b2b language-theme override,
-        en-b2c     en/b2c       English base value,
-        en_US      en_US        English base value,
-        en_US-b2b  en_US/b2b    b2b language-theme override,
-        en_US-b2c  en_US/b2c    English base value,
-      ]
-    `);
+  describe("detail call", () => {
+    it("should return all overrides for configured key if no language was given", async () => {
+      const res = await axios.get("/overrides/dummy");
+      expect(res).toHaveProperty("status", 200);
+      expect(res.data).toMatchInlineSnapshot(`
+        Array [
+          de         * Translated base value,
+          de/b2b       Translated base value,
+          de/b2c     * b2c language-theme override,
+          de_DE        Translated base value,
+          de_DE/b2b  * b2b locale-theme override,
+          de_DE/b2c    b2c language-theme override,
+          en         * English base value,
+          en/b2b     * b2b language-theme override,
+          en/b2c       English base value,
+          en_US        English base value,
+          en_US/b2b    b2b language-theme override,
+          en_US/b2c    English base value,
+        ]
+      `);
+    });
+
+    it("should return overrides for configured key in language if given", async () => {
+      const res = await axios.get("/overrides/de/dummy");
+      expect(res).toHaveProperty("status", 200);
+      expect(res.data).toMatchInlineSnapshot(`
+        Array [
+          de         * Translated base value,
+          de/b2b       Translated base value,
+          de/b2c     * b2c language-theme override,
+          de_DE        Translated base value,
+          de_DE/b2b  * b2b locale-theme override,
+          de_DE/b2c    b2c language-theme override,
+        ]
+      `);
+    });
+
+    it("should fail if requested language is not configured", async () => {
+      const res = await axios.get("/overrides/jp/dummy");
+      expect(res).toHaveProperty("status", 400);
+      expect(res.data).toMatchInlineSnapshot(
+        `"Language jp is not configured."`
+      );
+    });
   });
 
-  it("should return overrides for configured key in language if given", async () => {
-    const res = await axios.get("/overrides/de/dummy");
-    expect(res).toHaveProperty("status", 200);
-    expect(res.data).toMatchInlineSnapshot(`
-      Array [
-        de         de         * Translated base value,
-        de-b2b     de/b2b       Translated base value,
-        de-b2c     de/b2c     * b2c language-theme override,
-        de_DE      de_DE        Translated base value,
-        de_DE-b2b  de_DE/b2b  * b2b locale-theme override,
-        de_DE-b2c  de_DE/b2c    b2c language-theme override,
-      ]
-    `);
-  });
+  describe("list call", () => {
+    it("should return all keys with overrides", async () => {
+      const res = await axios.get("/overrides-list");
+      expect(res).toHaveProperty("status", 200);
+      expect(res.data).toMatchInlineSnapshot(`
+        Array [
+          "dummy",
+        ]
+      `);
+    });
 
-  it("should fail if requested language is not configured", async () => {
-    const res = await axios.get("/overrides/jp/dummy");
-    expect(res).toHaveProperty("status", 400);
-    expect(res.data).toMatchInlineSnapshot(`"Language jp is not configured."`);
+    it("should return overrides for configured key in language if given", async () => {
+      const res = await axios.get("/overrides-list/de");
+      expect(res).toHaveProperty("status", 200);
+      expect(res.data).toMatchInlineSnapshot(`
+        Array [
+          "dummy",
+        ]
+      `);
+    });
+
+    it("should fail if requested language is not configured", async () => {
+      const res = await axios.get("/overrides-list/jp");
+      expect(res).toHaveProperty("status", 400);
+      expect(res.data).toMatchInlineSnapshot(
+        `"Language jp is not configured."`
+      );
+    });
   });
 });

@@ -441,6 +441,27 @@ app.delete(`/localizations/${ID}/:key`, async (req, res, next) => {
 
 // <OVERRIDES>
 
+app.get("/overrides-list/:lang?", (req, res, next) => {
+  try {
+    let combinations = getCombinations();
+    if (req.params.lang) {
+      parseID(req.params);
+      combinations = combinations.filter((c) => c.lang === req.params.lang);
+    }
+    combinations = combinations.filter((c) => !!c.theme || !!c.country);
+
+    const keys = _.flatten(
+      combinations
+        .map((params) => parseID(params)?.id)
+        .map((id) => Object.keys(localizations.data[id] || {}))
+    ).filter((v, i, a) => a.indexOf(v) === i);
+
+    return res.send(keys);
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get("/overrides/:lang?/:key", (req, res, next) => {
   try {
     let combinations = getCombinations();
@@ -451,15 +472,18 @@ app.get("/overrides/:lang?/:key", (req, res, next) => {
 
     const makeLink = (params) => {
       const { id, lang, locale, theme, path } = parseID(params);
-      let urlSnippet = locale || lang;
+      let updateLang = locale || lang;
       if (theme) {
-        urlSnippet += "/" + theme;
+        updateLang += "/" + theme;
       }
       const base = `${req.protocol}://${req.get("host")}`;
       return {
         id,
-        lang: urlSnippet,
-        url: `${base}/localizations/${urlSnippet}/${req.params.key}`,
+        updateLang,
+        lang,
+        locale,
+        theme,
+        url: `${base}/localizations/${updateLang}/${req.params.key}`,
         interpolated: getLocalizations({ id, path })[req.params.key],
         value: getLocalizations({ id, path }, true)[req.params.key],
       };
