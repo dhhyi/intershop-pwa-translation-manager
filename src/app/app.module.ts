@@ -33,6 +33,7 @@ import { AuthInterceptor } from "../services/auth.interceptor";
 import { AppComponent } from "./app.component";
 import { ConfirmDialogComponent } from "./confirm-dialog.component";
 import { EditDialogComponent } from "./edit-dialog.component";
+import { MaintenanceComponent } from "./maintenance.component";
 import { TranslationDetailComponent } from "./translation-detail.component";
 import { TranslationTableComponent } from "./translation-table.component";
 import { UploadDialogComponent } from "./upload-dialog.component";
@@ -45,6 +46,7 @@ import { UploadDialogComponent } from "./upload-dialog.component";
     UploadDialogComponent,
     TranslationTableComponent,
     TranslationDetailComponent,
+    MaintenanceComponent,
   ],
   imports: [
     BrowserModule,

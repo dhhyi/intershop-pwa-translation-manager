@@ -43,7 +43,7 @@ import { UploadDialogComponent } from "./upload-dialog.component";
 @Component({
   selector: "app-translation-table",
   template: `
-    <mat-toolbar *ngIf="(config.select('maintenance') | async) !== true">
+    <mat-toolbar>
       <mat-form-field appearance="standard">
         <mat-label>Language</mat-label>
         <mat-select [formControl]="lang">
@@ -135,9 +135,7 @@ import { UploadDialogComponent } from "./upload-dialog.component";
         </mat-menu>
       </div>
     </mat-toolbar>
-    <div
-      *ngIf="(config.select('maintenance') | async) !== true; else maintenance"
-    >
+    <div>
       <ng-container *ngIf="displayedColumns$ | async as displayedColumns">
         <table
           *ngIf="(translations$ | async)?.length || (lang.valueChanges | async)"
@@ -219,11 +217,6 @@ import { UploadDialogComponent } from "./upload-dialog.component";
         </table>
       </ng-container>
     </div>
-    <ng-template #maintenance>
-      <h1 class="center">MAINTENANCE! Please come by later.</h1>
-      <h2 class="center">The data you entered is in good hands.</h2>
-      <h3 class="center">DON'T PANIC!</h3>
-    </ng-template>
   `,
   styles: [
     `
