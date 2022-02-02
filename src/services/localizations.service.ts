@@ -128,15 +128,15 @@ export class LocalizationsService {
     );
   }
 
-  upload(locale: string, type: string, data: string) {
+  upload(lang: string, type: string, data: string) {
     this.http
-      .post(`/import`, data, {
+      .post(`/import/${lang}`, data, {
         headers: new HttpHeaders().set("Content-Type", "text/plain"),
-        params: { type, locale },
+        params: { type },
       })
       .subscribe(() => {
         this.notification.success(
-          `successfully uploaded translations for ${locale} with strategy ${type}`
+          `successfully uploaded translations for ${lang} with strategy ${type}`
         );
         this.triggerUpdate$.next();
       });
