@@ -188,7 +188,6 @@ describe("Translation Filtering", () => {
       expect(filterOverrides(data, { type: "lang" })).toMatchInlineSnapshot(`
         Array [
           de,
-          de-theme,
         ]
       `);
     });
@@ -197,7 +196,6 @@ describe("Translation Filtering", () => {
       expect(filterOverrides(data, { type: "locale" })).toMatchInlineSnapshot(`
         Array [
           de_DE,
-          de_DE-theme,
         ]
       `);
     });

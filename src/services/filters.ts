@@ -58,13 +58,13 @@ export function filterOverrides(
   return overrides.filter((element) => {
     switch (filters.type) {
       case "lang":
-        return !element.locale;
+        return !element.locale && !element.theme;
       case "locale":
-        return element.locale;
+        return element.locale && !element.theme;
       case "theme":
         return element.theme;
       case "lang+theme":
-        return element.theme && !element.locale;
+        return !element.locale && element.theme;
       case "locale+theme":
         return element.locale && element.theme;
       default:
