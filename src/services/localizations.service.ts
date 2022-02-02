@@ -133,10 +133,11 @@ export class LocalizationsService {
       .post(`/import/${lang}`, data, {
         headers: new HttpHeaders().set("Content-Type", "text/plain"),
         params: { type },
+        responseType: "text",
       })
-      .subscribe(() => {
+      .subscribe((message) => {
         this.notification.success(
-          `successfully uploaded translations for ${lang} with strategy ${type}`
+          `successfully uploaded translations for ${lang} with strategy ${type}: ${message}`
         );
         this.triggerUpdate$.next();
       });
