@@ -144,7 +144,7 @@ import { UploadDialogComponent } from "./upload-dialog.component";
     <div>
       <ng-container *ngIf="displayedColumns$ | async as displayedColumns">
         <table
-          *ngIf="(translations$ | async)?.length || (lang.valueChanges | async)"
+          *ngIf="lang.value"
           mat-table
           [trackBy]="trackByFn"
           [dataSource]="pagedTranslations$"
