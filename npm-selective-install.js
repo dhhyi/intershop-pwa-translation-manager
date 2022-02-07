@@ -15,6 +15,6 @@ const args = suppliedArgs.length
   : ["--no-package-lock", "--no-save"];
 
 const cp = require("child_process");
-cp.execSync(`npm install ${args.join(" ")} ${libs.join(" ")}`, {
-  stdio: "inherit",
-});
+const commandLine = `npm install ${args.join(" ")} ${libs.join(" ")}`;
+console.log(">", commandLine);
+cp.execSync(commandLine, { stdio: "inherit" });
