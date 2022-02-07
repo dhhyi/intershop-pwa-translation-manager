@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ViewChild } from "@angular/core";
+import { AfterViewInit, Component, OnDestroy, ViewChild } from "@angular/core";
 import { FormBuilder, FormControl } from "@angular/forms";
 import { MatDialog, MatDialogRef } from "@angular/material/dialog";
 import { MatPaginator, PageEvent } from "@angular/material/paginator";
@@ -18,7 +18,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import escapeStringRegexp from "escape-string-regexp";
 import { mapValues } from "lodash-es";
-import { combineLatest, Observable } from "rxjs";
+import { combineLatest, Observable, Subject } from "rxjs";
 import {
   debounceTime,
   delay,
@@ -27,6 +27,7 @@ import {
   shareReplay,
   startWith,
   switchMap,
+  takeUntil,
 } from "rxjs/operators";
 
 import { ConfigService } from "../services/config.service";
@@ -283,7 +284,7 @@ import { UploadDialogComponent } from "./upload-dialog.component";
     `,
   ],
 })
-export class TranslationTableComponent implements AfterViewInit {
+export class TranslationTableComponent implements AfterViewInit, OnDestroy {
   lang = this.fb.control("");
 
   @ViewChild(MatPaginator) paginator: MatPaginator;
@@ -342,6 +343,8 @@ export class TranslationTableComponent implements AfterViewInit {
   faBan = faBan;
   faSitemap = faSitemap;
 
+  private destroy$ = new Subject();
+
   constructor(
     private fb: FormBuilder,
     private dialog: MatDialog,
@@ -353,7 +356,7 @@ export class TranslationTableComponent implements AfterViewInit {
     router: Router
   ) {
     this.lang.valueChanges
-      .pipe(startWith(this.lang.value))
+      .pipe(startWith(this.lang.value), takeUntil(this.destroy$))
       .subscribe((lang) => {
         if (lang) {
           router.navigate([], { queryParams: { lang }, relativeTo: route });
@@ -370,11 +373,13 @@ export class TranslationTableComponent implements AfterViewInit {
           });
       });
 
-    route.queryParams.pipe(pluck("lang"), delay(0)).subscribe((lang) => {
-      if (lang && lang !== this.lang.value) {
-        this.lang.setValue(lang);
-      }
-    });
+    route.queryParams
+      .pipe(pluck("lang"), delay(0), takeUntil(this.destroy$))
+      .subscribe((lang) => {
+        if (lang && lang !== this.lang.value) {
+          this.lang.setValue(lang);
+        }
+      });
 
     this.filtersActive$ = this.filters.valueChanges.pipe(
       map((filters) => Object.values(filters).some((v) => !!v))
@@ -460,22 +465,28 @@ export class TranslationTableComponent implements AfterViewInit {
       }
     );
 
-    ref.afterClosed().subscribe((newTranslation) => {
-      if (newTranslation !== undefined) {
-        this.service.set(this.lang.value, element.key, newTranslation);
-      }
-    });
+    ref
+      .afterClosed()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((newTranslation) => {
+        if (newTranslation !== undefined) {
+          this.service.set(this.lang.value, element.key, newTranslation);
+        }
+      });
   }
 
   remove(element: LocalizationWithBaseType) {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: `Really delete translation '${element.tr}' for key '${element.key}'`,
     });
-    ref.afterClosed().subscribe((confirmation) => {
-      if (confirmation) {
-        this.service.delete(this.lang.value, element.key);
-      }
-    });
+    ref
+      .afterClosed()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((confirmation) => {
+        if (confirmation) {
+          this.service.delete(this.lang.value, element.key);
+        }
+      });
   }
 
   csvDownloadName$ = this.lang.valueChanges.pipe(
@@ -501,9 +512,12 @@ export class TranslationTableComponent implements AfterViewInit {
       { data: string; uploadType: string }
     > = this.dialog.open(UploadDialogComponent, { maxWidth: "40vw" });
 
-    ref.afterClosed().subscribe((data) => {
-      this.service.upload(this.lang.value, data.uploadType, data.data);
-    });
+    ref
+      .afterClosed()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((data) => {
+        this.service.upload(this.lang.value, data.uploadType, data.data);
+      });
   }
 
   private escapeCsvCell(s: string): string {
@@ -527,5 +541,10 @@ export class TranslationTableComponent implements AfterViewInit {
         {}
       )
     );
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next(undefined);
+    this.destroy$.complete();
   }
 }

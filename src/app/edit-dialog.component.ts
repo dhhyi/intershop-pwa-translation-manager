@@ -168,7 +168,7 @@ export class EditDialogComponent implements OnDestroy {
       map((interpolated) => sanitizer.bypassSecurityTrustHtml(interpolated))
     );
 
-    this.replaceOnPaste$.subscribe((value) => {
+    this.replaceOnPaste$.pipe(takeUntil(this.destroy$)).subscribe((value) => {
       sessionStorage.setItem("REPLACE_ON_PASTE", value?.toString());
     });
   }
@@ -207,6 +207,7 @@ export class EditDialogComponent implements OnDestroy {
             merge(this.parameterSelection[arg].valueChanges, this.destroy$)
           )
         )
+        // eslint-disable-next-line rxjs-angular/prefer-takeuntil
         .subscribe((val) => {
           this.parameters.get(arg).setValue(val);
         });
@@ -224,9 +225,11 @@ export class EditDialogComponent implements OnDestroy {
   }
 
   applyGoogleTranslate() {
-    this.data.google.subscribe((googleTranslate) => {
-      this.translation.setValue(googleTranslate);
-    });
+    this.data.google
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((googleTranslate) => {
+        this.translation.setValue(googleTranslate);
+      });
   }
 
   onPaste(event: ClipboardEvent) {

@@ -1,4 +1,4 @@
-import { Component } from "@angular/core";
+import { Component, OnDestroy } from "@angular/core";
 import { FormBuilder, FormControl } from "@angular/forms";
 import { MatDialog, MatDialogRef } from "@angular/material/dialog";
 import { ActivatedRoute, Router } from "@angular/router";
@@ -16,7 +16,9 @@ import {
   Observable,
   pluck,
   startWith,
+  Subject,
   switchMap,
+  takeUntil,
 } from "rxjs";
 
 import { ConfigService } from "../services/config.service";
@@ -206,7 +208,7 @@ import { EditDialogComponent } from "./edit-dialog.component";
     `,
   ],
 })
-export class TranslationDetailComponent {
+export class TranslationDetailComponent implements OnDestroy {
   key$ = this.route.params.pipe(pluck("key"));
 
   lang = this.fb.control("");
@@ -255,6 +257,8 @@ export class TranslationDetailComponent {
   faEdit = faEdit;
   faTrash = faTrash;
 
+  private destroy$ = new Subject();
+
   constructor(
     private route: ActivatedRoute,
     private service: LocalizationsService,
@@ -264,13 +268,15 @@ export class TranslationDetailComponent {
     router: Router,
     private notification: NotificationService
   ) {
-    route.queryParams.pipe(pluck("lang"), delay(100)).subscribe((lang) => {
-      if (lang !== this.lang.value) {
-        this.lang.setValue(lang);
-      }
-    });
+    route.queryParams
+      .pipe(pluck("lang"), delay(100), takeUntil(this.destroy$))
+      .subscribe((lang) => {
+        if (lang !== this.lang.value) {
+          this.lang.setValue(lang);
+        }
+      });
 
-    this.lang.valueChanges.subscribe((lang) => {
+    this.lang.valueChanges.pipe(takeUntil(this.destroy$)).subscribe((lang) => {
       router.navigate([], { queryParams: { lang }, relativeTo: route });
     });
   }
@@ -306,22 +312,28 @@ export class TranslationDetailComponent {
       }
     );
 
-    ref.afterClosed().subscribe((newTranslation) => {
-      if (newTranslation !== undefined) {
-        this.service.set(element.updateLang, element.key, newTranslation);
-      }
-    });
+    ref
+      .afterClosed()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((newTranslation) => {
+        if (newTranslation !== undefined) {
+          this.service.set(element.updateLang, element.key, newTranslation);
+        }
+      });
   }
 
   remove(element: OverridesType) {
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: `Really delete translation '${element.value}' for key '${element.key}'`,
     });
-    ref.afterClosed().subscribe((confirmation) => {
-      if (confirmation) {
-        this.service.delete(element.updateLang, element.key);
-      }
-    });
+    ref
+      .afterClosed()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((confirmation) => {
+        if (confirmation) {
+          this.service.delete(element.updateLang, element.key);
+        }
+      });
   }
 
   clearAllFilters() {
@@ -331,5 +343,10 @@ export class TranslationDetailComponent {
         {} as OverridesFilters
       )
     );
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next(undefined);
+    this.destroy$.complete();
   }
 }
