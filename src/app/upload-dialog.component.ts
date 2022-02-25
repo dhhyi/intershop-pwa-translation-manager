@@ -25,6 +25,13 @@ import { NotificationService } from "../services/notification.service";
           <p>Upload is supported in the following formats:</p>
           <ul>
             <li>
+              <b>JSON</b>
+              <p>
+                with key-value pairs mapping translation keys to translations.
+                (usually our own format)
+              </p>
+            </li>
+            <li>
               <b>CSV</b>
               <p>
                 with translation keys in the 1st column and translations in the
@@ -32,12 +39,11 @@ import { NotificationService } from "../services/notification.service";
                 exporting from Excel, make sure to save the CSV in:
               </p>
               <pre>CSV UTF-8 (Comma delimited) (*.csv)</pre>
-            </li>
-            <li>
-              <b>JSON</b>
               <p>
-                with key-value pairs mapping translation keys to translations.
-                (usually our own format)
+                Also make sure your Excel exports the rows delimited by comma
+                and not by semicolon. If the latter is the case, go to Options >
+                Advanced > Editing Options. Set "Decimal separator" to
+                <code>.</code> and "Thousands separator" to <code>,</code>
               </p>
             </li>
           </ul>

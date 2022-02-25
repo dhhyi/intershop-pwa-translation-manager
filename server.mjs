@@ -522,7 +522,6 @@ app.post(`/import/${ID}`, async (req, res, next) => {
       } catch (e1) {
         try {
           data = parse(req.body, {
-            delimiter: ";",
             encoding: "utf-8",
             recordDelimiter: ["\n", "\r", "\r\n"],
             skip_empty_lines: true,

@@ -125,8 +125,8 @@ describe("Server Import", () => {
     it("should respond with 200", async () => {
       const res = await axios.post(
         "/import/de?type=replace",
-        `foo;;csv
-bar;;csv
+        `foo,,csv
+bar,,csv
 `,
         { headers: { "content-type": "text/plain" } }
       );
