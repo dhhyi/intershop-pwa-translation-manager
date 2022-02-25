@@ -216,7 +216,6 @@ import { UploadDialogComponent } from "./upload-dialog.component";
                   </ng-container>
                   <ng-container *ngSwitchDefault>
                     <span
-                      class="unselectable"
                       [ngClass]="{
                         'missing-translation': element.missing,
                         'dupe-translation': element.dupe,

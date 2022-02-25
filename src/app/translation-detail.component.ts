@@ -152,9 +152,7 @@ import { EditDialogComponent } from "./edit-dialog.component";
                   ></a>
                 </ng-container>
                 <ng-container *ngSwitchDefault>
-                  <span
-                    class="unselectable"
-                    [ngClass]="{ 'value-interpolated': !element.value }"
+                  <span [ngClass]="{ 'value-interpolated': !element.value }"
                     ><ng-container
                       *ngIf="element[column.id] !== undefined; else undef"
                       >{{ element[column.id] }}</ng-container
