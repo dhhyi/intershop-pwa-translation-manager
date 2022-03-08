@@ -529,9 +529,26 @@ app.post(`/import/${ID}`, async (req, res, next) => {
             (acc, [key, , translation]) => ({ ...acc, [key]: translation }),
             {}
           );
+
+          if (Object.keys(data).some((k) => k.includes(";"))) {
+            throw new UsageError("CSV with semicolons");
+          }
         } catch (e2) {
-          console.error(e2);
-          throw new UsageError("Could not parse CSV or JSON content");
+          try {
+            console.log("retry with semicolons");
+            data = parse(req.body, {
+              encoding: "utf-8",
+              delimiter: ";",
+              recordDelimiter: ["\n", "\r", "\r\n"],
+              skip_empty_lines: true,
+            }).reduce(
+              (acc, [key, , translation]) => ({ ...acc, [key]: translation }),
+              {}
+            );
+          } catch (e3) {
+            console.error(e3);
+            throw new UsageError("Could not parse CSV or JSON content");
+          }
         }
       }
     }

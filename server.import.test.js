@@ -146,6 +146,81 @@ bar,,csv
     });
   });
 
+  describe("when using textual CSV with escapes for the import", () => {
+    it("should respond with 200", async () => {
+      const res = await axios.post(
+        "/import/de?type=replace",
+        `foo,,"""c""sv2"
+bar,,"&quot;csv2&quot;"
+`,
+        { headers: { "content-type": "text/plain" } }
+      );
+      expect(res.status).toEqual(200);
+      expect(res.data).toMatchInlineSnapshot(`"Imported 2 keys."`);
+    });
+
+    it("should have the new translations available", async () => {
+      const res = await axios.get("/localizations/de");
+      expect(res.status).toEqual(200);
+      expect(res.data).toMatchInlineSnapshot(`
+        Object {
+          "bar": "&quot;csv2&quot;",
+          "foo": "\\"c\\"sv2",
+        }
+      `);
+    });
+  });
+
+  describe("when using textual CSV with semicolons for the import", () => {
+    it("should respond with 200", async () => {
+      const res = await axios.post(
+        "/import/de?type=replace",
+        `foo;;csv3
+bar;;csv3
+`,
+        { headers: { "content-type": "text/plain" } }
+      );
+      expect(res.status).toEqual(200);
+      expect(res.data).toMatchInlineSnapshot(`"Imported 2 keys."`);
+    });
+
+    it("should have the new translations available", async () => {
+      const res = await axios.get("/localizations/de");
+      expect(res.status).toEqual(200);
+      expect(res.data).toMatchInlineSnapshot(`
+        Object {
+          "bar": "csv3",
+          "foo": "csv3",
+        }
+      `);
+    });
+  });
+
+  describe("when using textual CSV with semicolons and escapes for the import", () => {
+    it("should respond with 200", async () => {
+      const res = await axios.post(
+        "/import/de?type=replace",
+        `foo;;"""c""sv4"
+bar;;"&quot;csv4&quot;"
+`,
+        { headers: { "content-type": "text/plain" } }
+      );
+      expect(res.status).toEqual(200);
+      expect(res.data).toMatchInlineSnapshot(`"Imported 2 keys."`);
+    });
+
+    it("should have the new translations available", async () => {
+      const res = await axios.get("/localizations/de");
+      expect(res.status).toEqual(200);
+      expect(res.data).toMatchInlineSnapshot(`
+        Object {
+          "bar": "&quot;csv4&quot;",
+          "foo": "\\"c\\"sv4",
+        }
+      `);
+    });
+  });
+
   describe("when deleting a language", () => {
     it("should respond with 200", async () => {
       const res = await axios.delete("/import/de");
