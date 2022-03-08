@@ -221,6 +221,32 @@ bar;;"&quot;csv4&quot;"
     });
   });
 
+  describe("when using textual CSV with empty keys for the import", () => {
+    it("should respond with 200", async () => {
+      const res = await axios.post(
+        "/import/de?type=replace",
+        `foo,,csv
+bar,,csv
+foobar,,
+`,
+        { headers: { "content-type": "text/plain" } }
+      );
+      expect(res.status).toEqual(200);
+      expect(res.data).toMatchInlineSnapshot(`"Imported 2 keys."`);
+    });
+
+    it("should have the new translations with value available", async () => {
+      const res = await axios.get("/localizations/de");
+      expect(res.status).toEqual(200);
+      expect(res.data).toMatchInlineSnapshot(`
+        Object {
+          "bar": "csv",
+          "foo": "csv",
+        }
+      `);
+    });
+  });
+
   describe("when deleting a language", () => {
     it("should respond with 200", async () => {
       const res = await axios.delete("/import/de");

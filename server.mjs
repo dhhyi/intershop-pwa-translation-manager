@@ -553,6 +553,13 @@ app.post(`/import/${ID}`, async (req, res, next) => {
       }
     }
 
+    // remove empty keys
+    Object.entries(data).forEach(([k, v]) => {
+      if (!v) {
+        delete data[k];
+      }
+    });
+
     if (!Object.keys(data).length) {
       throw new UsageError(
         "Could not parse any data in the CSV or JSON content"
