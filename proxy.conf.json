@@ -23,6 +23,12 @@
     "changeOrigin": true,
     "logLevel": "info"
   },
+  "/version": {
+    "target": "http://localhost:8000",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "info"
+  },
   "/overrides": {
     "target": "http://localhost:8000",
     "secure": false,

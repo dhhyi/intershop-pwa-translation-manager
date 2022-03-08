@@ -164,6 +164,10 @@ if (process.env.TESTING === "true") {
 
 app.use(cors());
 
+app.get(`/version`, (_, res) => {
+  res.set("content-type", "text/plain").send(process.env.DISPLAY_VERSION);
+});
+
 function getLocales() {
   const config = getConfig();
   if (!config.locales?.length) {

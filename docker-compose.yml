@@ -1,6 +1,9 @@
 services:
   web:
-    build: .
+    build:
+      context: .
+      args:
+        - DISPLAY_VERSION=docker-compose
     ports:
       - "8000:8000"
     environment:

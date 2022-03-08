@@ -21,9 +21,10 @@ COPY package-lock.json npm-selective-install.js /ws/
 RUN node npm-selective-install -g express
 
 FROM node:16-alpine as final
-ENV NODE_PATH=/usr/local/lib/node_modules
 COPY --from=npm_final /usr/local/lib/node_modules /usr/local/lib/node_modules
 COPY --from=be /ws/dist /dist
 COPY --from=fe /ws/dist /dist
+ARG DISPLAY_VERSION=not_set
+ENV DISPLAY_VERSION=${DISPLAY_VERSION} NODE_PATH=/usr/local/lib/node_modules
 EXPOSE 8000
 CMD ["node", "/dist/server-bundle.js"]
