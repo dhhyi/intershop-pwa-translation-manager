@@ -525,7 +525,7 @@ export class TranslationTableComponent implements AfterViewInit, OnDestroy {
 
   private csvLine(e: LocalizationWithBaseType): string {
     return [e.key, this.escapeCsvCell(e.base), this.escapeCsvCell(e.tr)].join(
-      ";"
+      ","
     );
   }
 
