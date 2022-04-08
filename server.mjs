@@ -327,9 +327,13 @@ app.get(`/localizations/${ID}`, (req, res, next) => {
     if (req.query.unblocked !== "true" && blockList.includes(req.ip)) {
       res.send({});
     } else {
-      res.send(
-        getLocalizations(parseID(req.params), req.query.exact === "true")
-      );
+      try {
+        const parsed = parseID(req.params);
+        res.send(getLocalizations(parsed, req.query.exact === "true"));
+      } catch (error) {
+        console.log(error.message);
+        return res.send({});
+      }
     }
   } catch (error) {
     next(error);

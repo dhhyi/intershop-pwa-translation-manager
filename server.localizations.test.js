@@ -42,6 +42,23 @@ describe("Server Localizations", () => {
     expect(res.headers["content-type"]).toStartWith("application/json");
   });
 
+  it.each([
+    "de",
+    "de/b2c",
+    "de_DE",
+    "de_DE/b2c",
+    "de-DE-b2c",
+    "de_DE-b2c.json",
+  ])(
+    "should return empty object for unknown data request '%s'",
+    async (req) => {
+      const res = await axios.get("/localizations/" + req);
+      expect(res.status).toEqual(200);
+      expect(res.data).toEqual({});
+      expect(res.headers["content-type"]).toStartWith("application/json");
+    }
+  );
+
   it("should return the data for detail requests", async () => {
     const res = await axios.get("/localizations/fr/foo");
     expect(res.status).toEqual(200);
