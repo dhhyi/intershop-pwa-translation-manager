@@ -1,12 +1,12 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders } from "@angular/common/http";
+import { Injectable } from "@angular/core";
 import {
   Override,
   OverridesList,
   Translations,
-} from '@pwa-translation-manager/api';
-import { memoize } from 'lodash-es';
-import { BehaviorSubject, combineLatest, Observable } from 'rxjs';
+} from "@pwa-translation-manager/api";
+import { memoize } from "lodash-es";
+import { BehaviorSubject, combineLatest, Observable } from "rxjs";
 import {
   filter,
   map,
@@ -14,10 +14,10 @@ import {
   shareReplay,
   switchMap,
   withLatestFrom,
-} from 'rxjs/operators';
+} from "rxjs/operators";
 
-import { ConfigService } from './config.service';
-import { NotificationService } from './notification.service';
+import { ConfigService } from "./config.service";
+import { NotificationService } from "./notification.service";
 
 export interface LocalizationWithBaseType {
   key: string;
@@ -36,7 +36,7 @@ export type OverridesType = Override & {
 
 /* eslint-disable @typescript-eslint/member-ordering */
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class LocalizationsService {
   constructor(
     private http: HttpClient,
@@ -44,7 +44,7 @@ export class LocalizationsService {
     private notification: NotificationService
   ) {
     config
-      .select('maintenance')
+      .select("maintenance")
       .pipe(
         pairwise(),
         filter(([before, after]) => before && !after)
@@ -68,17 +68,17 @@ export class LocalizationsService {
   );
 
   private convertToString(obj: unknown): string {
-    return typeof obj === 'string' ? obj : JSON.stringify(obj);
+    return typeof obj === "string" ? obj : JSON.stringify(obj);
   }
 
-  private ignored$ = this.config.select('ignored').pipe(map((x) => x || []));
+  private ignored$ = this.config.select("ignored").pipe(map((x) => x || []));
 
   localizationsWithBase$ = (
     lang: string
   ): Observable<LocalizationWithBaseType[]> =>
     combineLatest([
       this.config
-        .select('baseLang')
+        .select("baseLang")
         .pipe(switchMap((baseLang) => this.localizations$(baseLang))),
       this.localizations$(lang),
       this.ignored$,
@@ -89,7 +89,7 @@ export class LocalizationsService {
           key,
           base: this.convertToString(base[key]),
           tr: this.convertToString(loc[key]),
-          missing: typeof loc[key] !== 'string',
+          missing: typeof loc[key] !== "string",
           dupe: loc[key] === base[key],
           ignored: ignored.includes(key),
           overridden: overridden.includes(key),
@@ -100,7 +100,7 @@ export class LocalizationsService {
   set(lang: string, key: string, value: unknown) {
     this.http
       .put(`/localizations/${lang}/${key}`, value, {
-        headers: new HttpHeaders().set('Content-Type', 'text/plain'),
+        headers: new HttpHeaders().set("Content-Type", "text/plain"),
       })
       .subscribe(() => {
         this.notification.success(`successfully set "${key}" for ${lang}`);
@@ -111,7 +111,7 @@ export class LocalizationsService {
   delete(lang: string, key: string) {
     this.http
       .delete(`/localizations/${lang}/${key}`, {
-        headers: new HttpHeaders().set('Content-Type', 'text/plain'),
+        headers: new HttpHeaders().set("Content-Type", "text/plain"),
       })
       .subscribe(() => {
         this.notification.success(`successfully deleted "${key}" for ${lang}`);
@@ -121,18 +121,18 @@ export class LocalizationsService {
 
   translate(lang: string, text: string): Observable<string> {
     return this.http.post(
-      '/translate',
+      "/translate",
       { lang, text },
-      { responseType: 'text' }
+      { responseType: "text" }
     );
   }
 
   upload(lang: string, type: string, data: string) {
     this.http
       .post(`/import/${lang}`, data, {
-        headers: new HttpHeaders().set('Content-Type', 'text/plain'),
+        headers: new HttpHeaders().set("Content-Type", "text/plain"),
         params: { type },
-        responseType: 'text',
+        responseType: "text",
       })
       .subscribe((message) => {
         this.notification.success(
@@ -154,7 +154,7 @@ export class LocalizationsService {
       this.triggerUpdate$.pipe(
         switchMap(() =>
           this.http
-            .get<Override[]>(`/overrides/${lang ? lang + '/' : ''}${key}`)
+            .get<Override[]>(`/overrides/${lang ? lang + "/" : ""}${key}`)
             .pipe(
               withLatestFrom(
                 this.ignored$.pipe(map((ignored) => ignored.includes(key)))

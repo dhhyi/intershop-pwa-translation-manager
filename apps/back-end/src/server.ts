@@ -1,18 +1,18 @@
-import * as express from 'express';
-import { join } from 'path';
-import { mkdirSync, existsSync } from 'fs';
-import { Low, JSONFile, Memory } from 'lowdb';
-import cors from 'cors';
-import * as googleTranslate from '@google-cloud/translate';
-import { parse } from 'csv-parse/sync';
-import * as _ from 'lodash';
+import * as express from "express";
+import { join } from "path";
+import { mkdirSync, existsSync } from "fs";
+import { Low, JSONFile, Memory } from "lowdb";
+import cors from "cors";
+import * as googleTranslate from "@google-cloud/translate";
+import { parse } from "csv-parse/sync";
+import * as _ from "lodash";
 import {
   Config,
   OverridesList,
   Override,
   Translations,
-} from '@pwa-translation-manager/api';
-import { parse as parseCmdl } from 'ts-command-line-args';
+} from "@pwa-translation-manager/api";
+import { parse as parseCmdl } from "ts-command-line-args";
 
 // <INIT>
 
@@ -28,35 +28,35 @@ const args = parseCmdl<CmdLineArguments>(
   {
     silent: {
       type: Boolean,
-      alias: 's',
+      alias: "s",
       optional: true,
-      description: 'silent mode',
+      description: "silent mode",
     },
     port: {
       type: Number,
-      alias: 'p',
+      alias: "p",
       optional: true,
-      description: 'port to listen on',
+      description: "port to listen on",
     },
-    dbLocation: { type: String, optional: true, description: 'storage folder' },
-    testing: { type: Boolean, optional: true, description: 'testing mode' },
+    dbLocation: { type: String, optional: true, description: "storage folder" },
+    testing: { type: Boolean, optional: true, description: "testing mode" },
     help: {
       type: Boolean,
       optional: true,
-      alias: 'h',
-      description: 'Prints this usage guide',
+      alias: "h",
+      description: "Prints this usage guide",
     },
   },
   {
-    helpArg: 'help',
+    helpArg: "help",
   }
 );
 
 if (args.silent) {
-  process.env.SILENT = 'true';
+  process.env.SILENT = "true";
 }
 if (args.testing) {
-  process.env.TESTING = 'true';
+  process.env.TESTING = "true";
 }
 if (args.dbLocation) {
   process.env.DB_LOCATION = args.dbLocation;
@@ -68,7 +68,7 @@ if (args.port) {
 class ConfigError extends Error {}
 class UsageError extends Error {}
 
-if (process.env.SILENT === 'true') {
+if (process.env.SILENT === "true") {
   console.log = () => {
     // do nothing
   };
@@ -79,8 +79,8 @@ function BlockList() {
   const timeoutMap = {};
 
   const includes = (ip) => {
-    if (ip === '::1') {
-      return list.includes('::ffff:127.0.0.1');
+    if (ip === "::1") {
+      return list.includes("::ffff:127.0.0.1");
     }
     return list.includes(ip);
   };
@@ -109,7 +109,7 @@ function BlockList() {
 const blockList = BlockList();
 
 const folder = process.env.DB_LOCATION;
-console.log('storage location:', folder);
+console.log("storage location:", folder);
 
 function BackEnd(dbName) {
   let adapter;
@@ -119,12 +119,12 @@ function BackEnd(dbName) {
       mkdirSync(folder, { recursive: true });
     }
 
-    const file = join(folder, dbName + '.json');
+    const file = join(folder, dbName + ".json");
 
-    console.log('using json file storage for', dbName);
+    console.log("using json file storage for", dbName);
     adapter = new JSONFile(file);
   } else {
-    console.log('using memory storage for', dbName);
+    console.log("using memory storage for", dbName);
     adapter = new Memory();
   }
   const db = new Low(adapter);
@@ -139,22 +139,22 @@ async function init(db) {
   return db;
 }
 
-const localizations = await init(BackEnd('db'));
+const localizations = await init(BackEnd("db"));
 
 Object.entries(localizations.data).forEach(([lang, translations]) => {
   console.log(
-    'loaded localization',
+    "loaded localization",
     lang,
-    '-',
+    "-",
     Object.keys(translations).length,
-    'keys'
+    "keys"
   );
 });
 if (!Object.entries(localizations.data).length) {
-  console.log('no localization data available');
+  console.log("no localization data available");
 }
 
-const config = await init(BackEnd('config'));
+const config = await init(BackEnd("config"));
 
 const getConfig = (req?): Config => {
   const data = (config.data || {}) as Config;
@@ -162,7 +162,7 @@ const getConfig = (req?): Config => {
   if (req) {
     data.block = blockList.includes(req.ip);
   }
-  data.baseLang = data.baseLang ?? 'en';
+  data.baseLang = data.baseLang ?? "en";
   data.languages = (data.locales || [])
     .map((locale) => /^([a-z]+)/.exec(locale)?.[1])
     .filter((v, i, a) => !!v && a.indexOf(v) === i)
@@ -171,16 +171,16 @@ const getConfig = (req?): Config => {
 };
 
 function logConfig() {
-  console.log('new config', JSON.stringify(getConfig(), undefined, ''));
+  console.log("new config", JSON.stringify(getConfig(), undefined, ""));
 }
 logConfig();
 
-const configReadOnlyFields = ['translateAvailable', 'languages'];
+const configReadOnlyFields = ["translateAvailable", "languages"];
 
 const setConfigValue = async (key, value) => {
   const configData = getConfig();
   configData[key] = value;
-  config.data = _.omit(configData, ...configReadOnlyFields, 'block');
+  config.data = _.omit(configData, ...configReadOnlyFields, "block");
   await config.write();
   logConfig();
 };
@@ -191,20 +191,20 @@ const app = express();
 
 // <ANGULAR>
 
-app.get(['/', '/key/:key'], (req, _, next) => {
-  req.url = '/index.html';
+app.get(["/", "/key/:key"], (req, _, next) => {
+  req.url = "/index.html";
   next();
 });
 
-app.get(/.*(html|css|js|ico)$/, express.static('dist'));
+app.get(/.*(html|css|js|ico)$/, express.static("dist"));
 
 // </ANGULAR>
 
 // <TESTING>
 
-if (process.env.TESTING === 'true') {
-  app.delete('/db', async (_, res) => {
-    console.log('DELETE DB');
+if (process.env.TESTING === "true") {
+  app.delete("/db", async (_, res) => {
+    console.log("DELETE DB");
 
     config.data = {};
     await config.write();
@@ -223,16 +223,16 @@ if (process.env.TESTING === 'true') {
 app.use(cors());
 
 app.get(`/version`, (_, res) => {
-  res.set('content-type', 'text/plain').send(process.env.DISPLAY_VERSION);
+  res.set("content-type", "text/plain").send(process.env.DISPLAY_VERSION);
 });
 
 function getLocales() {
   const config = getConfig();
   if (!config.locales?.length) {
-    throw new ConfigError('No locales are configured.');
+    throw new ConfigError("No locales are configured.");
   }
   return [...config.locales].sort().map((locale) => {
-    const [lang, country] = locale.split('_');
+    const [lang, country] = locale.split("_");
     return { lang, country };
   });
 }
@@ -240,7 +240,7 @@ function getLocales() {
 function getLanguages() {
   const config = getConfig();
   if (!config.locales?.length) {
-    throw new ConfigError('No locales are configured.');
+    throw new ConfigError("No locales are configured.");
   }
   return [...config.languages].sort();
 }
@@ -248,7 +248,7 @@ function getLanguages() {
 function getThemes() {
   const config = getConfig();
   if (!config.themes?.length) {
-    throw new ConfigError('No themes are configured.');
+    throw new ConfigError("No themes are configured.");
   }
   return [...config.themes].sort();
 }
@@ -261,7 +261,7 @@ function getCombinations() {
     combinations.push(
       ..._.flatten(
         Object.entries(config.combinations).map(([locale, themes]) => {
-          const [lang, country] = locale.split('_');
+          const [lang, country] = locale.split("_");
           return themes.map((theme) => ({ lang, country, theme }));
         })
       )
@@ -303,12 +303,12 @@ function getCombinations() {
 }
 
 const ID =
-  ':lang([a-zA-Z0-9]+)' +
-  ':div1([-_])?' +
-  ':country([a-zA-Z0-9]+)?' +
-  ':div2([-_\\/])?' +
-  ':theme([a-zA-Z0-9]+)?' +
-  '(.json)?';
+  ":lang([a-zA-Z0-9]+)" +
+  ":div1([-_])?" +
+  ":country([a-zA-Z0-9]+)?" +
+  ":div2([-_\\/])?" +
+  ":theme([a-zA-Z0-9]+)?" +
+  "(.json)?";
 
 function parseID(params) {
   const lang = params.lang?.toLowerCase();
@@ -316,23 +316,23 @@ function parseID(params) {
   const theme = params.theme?.toLowerCase();
 
   if (!getLanguages().includes(lang)) {
-    throw new ConfigError('Language ' + lang + ' is not configured.');
+    throw new ConfigError("Language " + lang + " is not configured.");
   } else if (
     country &&
     !getLocales().find((l) => l.lang === lang && l.country === country)
   ) {
     throw new ConfigError(`Locale ${lang}-${country} is not configured.`);
   } else if (theme && !getThemes().includes(theme)) {
-    throw new ConfigError('Theme ' + theme + ' is not configured.');
+    throw new ConfigError("Theme " + theme + " is not configured.");
   } else {
     let id = lang;
     let locale;
     if (country) {
-      id += '_' + country;
+      id += "_" + country;
       locale = id;
     }
     if (theme) {
-      id += '-' + theme;
+      id += "-" + theme;
     }
 
     const path = [lang];
@@ -365,15 +365,15 @@ app.get(
   (req, res: express.Response<string>, next) => {
     try {
       const themes = getConfig(req).themes || [];
-      if (themes.includes(req.params.key.replace(/\.json$/, ''))) {
+      if (themes.includes(req.params.key.replace(/\.json$/, ""))) {
         next();
       } else {
         const data = getLocalizations(
           parseID(req.params),
-          req.query.exact === 'true'
+          req.query.exact === "true"
         )[req.params.key];
         if (data) {
-          return res.set('content-type', 'text/plain').send(data);
+          return res.set("content-type", "text/plain").send(data);
         }
         return res.sendStatus(404);
       }
@@ -387,12 +387,12 @@ app.get(
   `/localizations/${ID}`,
   (req, res: express.Response<Translations>, next) => {
     try {
-      if (req.query.unblocked !== 'true' && blockList.includes(req.ip)) {
+      if (req.query.unblocked !== "true" && blockList.includes(req.ip)) {
         res.send({});
       } else {
         try {
           const parsed = parseID(req.params);
-          res.send(getLocalizations(parsed, req.query.exact === 'true'));
+          res.send(getLocalizations(parsed, req.query.exact === "true"));
         } catch (error) {
           console.log(error.message);
           return res.send({});
@@ -404,31 +404,31 @@ app.get(
   }
 );
 
-app.get('/list', (req, res, next) => {
+app.get("/list", (req, res, next) => {
   try {
     const newQuery = Object.entries(
-      _.omit({ unblocked: true, ...req.query }, 'query')
+      _.omit({ unblocked: true, ...req.query }, "query")
     )
       .map(([k, v]) => `${k}=${v}`)
-      .join('&');
+      .join("&");
 
     const makeLink = (params) => {
       const { id, lang, locale, theme } = parseID(params);
       return {
         id,
-        url: `${req.protocol}://${req.get('host')}/localizations/${
+        url: `${req.protocol}://${req.get("host")}/localizations/${
           locale || lang
-        }${theme ? '/' + theme : ''}?${newQuery}`,
+        }${theme ? "/" + theme : ""}?${newQuery}`,
       };
     };
 
     let links;
     switch (req.query.query) {
-      case 'combinations':
+      case "combinations":
         links = getCombinations().map(makeLink);
         break;
 
-      case 'locale':
+      case "locale":
         links = getLocales().map(makeLink);
         break;
 
@@ -439,7 +439,7 @@ app.get('/list', (req, res, next) => {
         break;
     }
 
-    return res.send(_.sortBy(links, 'id'));
+    return res.send(_.sortBy(links, "id"));
   } catch (error) {
     next(error);
   }
@@ -449,22 +449,22 @@ app.get('/list', (req, res, next) => {
 
 const API_PASSWORD = process.env.API_PASSWORD;
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.text({ limit: '10mb' }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.text({ limit: "10mb" }));
 
 app.use((req, res, next) => {
-  if (API_PASSWORD && req.get('Authorization') !== API_PASSWORD) {
+  if (API_PASSWORD && req.get("Authorization") !== API_PASSWORD) {
     return res.sendStatus(401);
   }
   next();
 });
 
 function assertFormat(req, ...formats) {
-  if (!formats.some((format) => req.get('Content-Type') === format)) {
+  if (!formats.some((format) => req.get("Content-Type") === format)) {
     throw new UsageError(
       `Only Content-Type ${formats
         .map((x) => `"${x}"`)
-        .join()} is allowed here! Received "${req.get('Content-Type')}"`
+        .join()} is allowed here! Received "${req.get("Content-Type")}"`
     );
   }
 }
@@ -473,7 +473,7 @@ function assertFormat(req, ...formats) {
 
 app.put(`/localizations/${ID}/:key`, async (req, res, next) => {
   try {
-    assertFormat(req, res, 'text/plain');
+    assertFormat(req, res, "text/plain");
     const { id } = parseID(req.params);
     if (!localizations.data[id]) {
       localizations.data[id] = {};
@@ -481,7 +481,7 @@ app.put(`/localizations/${ID}/:key`, async (req, res, next) => {
     const key = req.params.key;
     const body = req.body;
 
-    console.log('set', id, key, '=', body);
+    console.log("set", id, key, "=", body);
     localizations.data[id][key] = body;
 
     await localizations.write();
@@ -499,7 +499,7 @@ app.delete(`/localizations/${ID}/:key`, async (req, res, next) => {
     }
     const key = req.params.key;
 
-    console.log('delete', id, key);
+    console.log("delete", id, key);
     delete localizations.data[id][key];
 
     await localizations.write();
@@ -514,7 +514,7 @@ app.delete(`/localizations/${ID}/:key`, async (req, res, next) => {
 // <OVERRIDES>
 
 app.get(
-  '/overrides-list/:lang?',
+  "/overrides-list/:lang?",
   (req, res: express.Response<OverridesList>, next) => {
     try {
       let combinations = getCombinations();
@@ -538,7 +538,7 @@ app.get(
 );
 
 app.get(
-  '/overrides/:lang?/:key',
+  "/overrides/:lang?/:key",
   (req, res: express.Response<Override[]>, next) => {
     try {
       let combinations = getCombinations();
@@ -551,9 +551,9 @@ app.get(
         const { id, lang, locale, theme, path, country } = parseID(params);
         let updateLang = locale || lang;
         if (theme) {
-          updateLang += '/' + theme;
+          updateLang += "/" + theme;
         }
-        const base = `${req.protocol}://${req.get('host')}`;
+        const base = `${req.protocol}://${req.get("host")}`;
         return {
           id,
           updateLang,
@@ -567,7 +567,7 @@ app.get(
         };
       };
 
-      return res.send(_.sortBy(combinations.map(makeLink), 'id'));
+      return res.send(_.sortBy(combinations.map(makeLink), "id"));
     } catch (error) {
       next(error);
     }
@@ -580,19 +580,19 @@ app.get(
 
 app.post(`/import/${ID}`, async (req, res, next) => {
   try {
-    assertFormat(req, res, 'text/plain', 'application/json');
+    assertFormat(req, res, "text/plain", "application/json");
     const { id } = parseID(req.params);
     const type = req.query.type;
-    const options = ['replace', 'overwrite', 'add'];
+    const options = ["replace", "overwrite", "add"];
     if (!type) {
       throw new UsageError(
-        "Query parameter 'type' is required. Options: " + options.join(', ')
+        "Query parameter 'type' is required. Options: " + options.join(", ")
       );
     }
 
     let data;
 
-    if (typeof req.body === 'object') {
+    if (typeof req.body === "object") {
       data = req.body;
     } else {
       try {
@@ -600,24 +600,24 @@ app.post(`/import/${ID}`, async (req, res, next) => {
       } catch (e1) {
         try {
           data = parse(req.body, {
-            encoding: 'utf-8',
-            recordDelimiter: ['\n', '\r', '\r\n'],
+            encoding: "utf-8",
+            recordDelimiter: ["\n", "\r", "\r\n"],
             skip_empty_lines: true,
           }).reduce(
             (acc, [key, , translation]) => ({ ...acc, [key]: translation }),
             {}
           );
 
-          if (Object.keys(data).some((k) => k.includes(';'))) {
-            throw new UsageError('CSV with semicolons');
+          if (Object.keys(data).some((k) => k.includes(";"))) {
+            throw new UsageError("CSV with semicolons");
           }
         } catch (e2) {
           try {
-            console.log('retry with semicolons');
+            console.log("retry with semicolons");
             data = parse(req.body, {
-              encoding: 'utf-8',
-              delimiter: ';',
-              recordDelimiter: ['\n', '\r', '\r\n'],
+              encoding: "utf-8",
+              delimiter: ";",
+              recordDelimiter: ["\n", "\r", "\r\n"],
               skip_empty_lines: true,
             }).reduce(
               (acc, [key, , translation]) => ({ ...acc, [key]: translation }),
@@ -625,7 +625,7 @@ app.post(`/import/${ID}`, async (req, res, next) => {
             );
           } catch (e3) {
             console.error(e3);
-            throw new UsageError('Could not parse CSV or JSON content');
+            throw new UsageError("Could not parse CSV or JSON content");
           }
         }
       }
@@ -640,7 +640,7 @@ app.post(`/import/${ID}`, async (req, res, next) => {
 
     if (!Object.keys(data).length) {
       throw new UsageError(
-        'Could not parse any data in the CSV or JSON content'
+        "Could not parse any data in the CSV or JSON content"
       );
     }
 
@@ -648,16 +648,16 @@ app.post(`/import/${ID}`, async (req, res, next) => {
       localizations.data[id] = {};
     }
 
-    console.log('importing', id, 'with strategy', type);
+    console.log("importing", id, "with strategy", type);
 
     let message;
     switch (type) {
-      case 'replace':
+      case "replace":
         localizations.data[id] = data;
         message = `Imported ${Object.keys(data).length} keys.`;
         break;
 
-      case 'overwrite':
+      case "overwrite":
         localizations.data[id] = {
           ...localizations.data[id],
           ...data,
@@ -665,7 +665,7 @@ app.post(`/import/${ID}`, async (req, res, next) => {
         message = `Imported ${Object.keys(data).length} keys.`;
         break;
 
-      case 'add':
+      case "add":
         // eslint-disable-next-line no-case-declarations
         const originalKeys = Object.keys(localizations.data[id]);
         localizations.data[id] = {
@@ -680,7 +680,7 @@ app.post(`/import/${ID}`, async (req, res, next) => {
       default:
         throw new UsageError(
           "Value for query parameter 'type' is not supported. Options: " +
-            options.join(', ')
+            options.join(", ")
         );
     }
 
@@ -706,7 +706,7 @@ app.delete(`/import/${ID}`, async (req, res, next) => {
 
 // <CONFIG>
 
-app.get('/config', (req, res, next) => {
+app.get("/config", (req, res, next) => {
   try {
     return res.send(getConfig(req));
   } catch (error) {
@@ -714,7 +714,7 @@ app.get('/config', (req, res, next) => {
   }
 });
 
-app.get('/config/:key', (req, res, next) => {
+app.get("/config/:key", (req, res, next) => {
   try {
     const data = getConfig(req)[req.params.key];
     if (data === undefined) {
@@ -745,9 +745,9 @@ function parseArray(input) {
 }
 
 function checkConfigValue(key, value) {
-  if (key === 'locales') {
+  if (key === "locales") {
     let parsed = value;
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       parsed = parseArray(value);
     } else if (!Array.isArray(value)) {
       throw new ConfigError(`Could not set ${key}.`);
@@ -762,27 +762,27 @@ function checkConfigValue(key, value) {
       return p;
     });
     if (errors.length) {
-      throw new ConfigError('Could not set locales. ' + errors.join(' '));
+      throw new ConfigError("Could not set locales. " + errors.join(" "));
     }
 
     return parsed;
-  } else if (key === 'themes' || key === 'ignored') {
+  } else if (key === "themes" || key === "ignored") {
     let parsed = value;
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       parsed = parseArray(value);
     } else if (!Array.isArray(value)) {
       throw new ConfigError(`Could not set ${key}.`);
     }
 
     return parsed;
-  } else if (key === 'combinations') {
+  } else if (key === "combinations") {
     const config = getConfig();
     const locales = config.locales || [];
     const themes = config.themes || [];
 
     const newCombinations = {};
 
-    for (const [cl, cts] of Object.entries(value as Config['combinations'])) {
+    for (const [cl, cts] of Object.entries(value as Config["combinations"])) {
       const locale = normalizeLocale(cl);
       if (!locales.includes(locale)) {
         throw new ConfigError(`Locale "${cl}" is not configured.`);
@@ -796,8 +796,8 @@ function checkConfigValue(key, value) {
       newCombinations[locale] = cts.sort();
     }
     return newCombinations;
-  } else if (key === 'baseLang') {
-    if (typeof value !== 'string') {
+  } else if (key === "baseLang") {
+    if (typeof value !== "string") {
       throw new ConfigError(`Could not set ${key}.`);
     } else if (!/^[a-zA-Z]+$/.test(value)) {
       throw new ConfigError(`Could not set ${key}.`);
@@ -808,9 +808,9 @@ function checkConfigValue(key, value) {
   }
 }
 
-app.post('/config', async (req, res, next) => {
+app.post("/config", async (req, res, next) => {
   try {
-    assertFormat(req, res, 'application/json');
+    assertFormat(req, res, "application/json");
     const newConfig = {};
     for (const key in req.body) {
       const value = req.body[key];
@@ -827,20 +827,20 @@ app.post('/config', async (req, res, next) => {
   }
 });
 
-app.put('/config/:key', async (req, res, next) => {
+app.put("/config/:key", async (req, res, next) => {
   try {
     const key = req.params.key;
-    if (key === 'block') {
+    if (key === "block") {
       blockList.add(req.ip);
       return res.sendStatus(204);
     } else if (configReadOnlyFields.includes(key)) {
       next();
     } else {
       let value = req.body;
-      if (typeof value === 'string') {
-        if ('true' === value?.toLowerCase()) {
+      if (typeof value === "string") {
+        if ("true" === value?.toLowerCase()) {
           value = true;
-        } else if ('false' === value?.toLowerCase()) {
+        } else if ("false" === value?.toLowerCase()) {
           value = false;
         }
       }
@@ -854,9 +854,9 @@ app.put('/config/:key', async (req, res, next) => {
   }
 });
 
-app.delete('/config/:key', async (req, res, next) => {
+app.delete("/config/:key", async (req, res, next) => {
   try {
-    if (req.params.key === 'block') {
+    if (req.params.key === "block") {
       blockList.remove(req.ip);
       return res.sendStatus(204);
     } else if (configReadOnlyFields.includes(req.params.key)) {
@@ -874,22 +874,22 @@ app.delete('/config/:key', async (req, res, next) => {
 
 // <TRANSLATE>
 
-app.post('/translate', async (req, res, next) => {
+app.post("/translate", async (req, res, next) => {
   try {
     const googleAPIKey = process.env.GOOGLE_API_KEY;
 
     if (!googleAPIKey) {
-      throw new ConfigError('No Google translate API key is set.');
+      throw new ConfigError("No Google translate API key is set.");
     }
 
-    assertFormat(req, res, 'application/json');
+    assertFormat(req, res, "application/json");
     const tr = new googleTranslate.v2.Translate({
       key: googleAPIKey,
     });
     try {
       const translation = await tr.translate(
         req.body.text,
-        req.body.lang.replace(/_.*$/, '')
+        req.body.lang.replace(/_.*$/, "")
       );
       return res.send(translation?.[0]);
     } catch (err) {
@@ -904,7 +904,7 @@ app.post('/translate', async (req, res, next) => {
 // </TRANSLATE>
 
 app.use((req, res, next) => {
-  if (req.method !== 'GET') {
+  if (req.method !== "GET") {
     return res.sendStatus(405);
   } else {
     next();
@@ -918,11 +918,11 @@ app.use((err, _req, res, _next) => {
     return res.status(400).send(err.message);
   } else {
     console.error(err);
-    return res.status(500).send('Internal Server Error: ' + err.stack);
+    return res.status(500).send("Internal Server Error: " + err.stack);
   }
 });
 
 const port = +process.env.PORT || 8000;
 app.listen(port, () => {
-  console.log('PWA translation manager listening on ' + port);
+  console.log("PWA translation manager listening on " + port);
 });

@@ -1,11 +1,11 @@
 import {
   LocalizationWithBaseType,
   OverridesType,
-} from './localizations.service';
+} from "./localizations.service";
 
 export type TranslationFilters = Partial<
   Record<
-    keyof Pick<LocalizationWithBaseType, 'key' | 'base' | 'tr'>,
+    keyof Pick<LocalizationWithBaseType, "key" | "base" | "tr">,
     RegExp
   > & {
     onlyMissing: boolean;
@@ -17,7 +17,7 @@ export type TranslationFilters = Partial<
 >;
 
 export type OverridesFilters = Partial<{
-  type: undefined | 'lang' | 'locale' | 'theme' | 'lang+theme' | 'locale+theme';
+  type: undefined | "lang" | "locale" | "theme" | "lang+theme" | "locale+theme";
 }>;
 
 function containsComplex(v: string) {
@@ -33,7 +33,7 @@ export function filterTranslations(
       (e) =>
         (filters.onlyMissing === true && e.missing) ||
         (filters.onlyDupes === true && e.dupe) ||
-        (filters.onlyEmpty === true && e.tr?.trim() === '') ||
+        (filters.onlyEmpty === true && e.tr?.trim() === "") ||
         (filters.onlyComplex === true &&
           (containsComplex(e.base) || containsComplex(e.tr))) ||
         (filters.onlyOverridden === true && e.overridden) ||
@@ -57,15 +57,15 @@ export function filterOverrides(
 ): OverridesType[] {
   return overrides.filter((element) => {
     switch (filters.type) {
-      case 'lang':
+      case "lang":
         return !element.locale && !element.theme;
-      case 'locale':
+      case "locale":
         return element.locale && !element.theme;
-      case 'theme':
+      case "theme":
         return element.theme;
-      case 'lang+theme':
+      case "lang+theme":
         return !element.locale && element.theme;
-      case 'locale+theme':
+      case "locale+theme":
         return element.locale && element.theme;
       default:
         return true;

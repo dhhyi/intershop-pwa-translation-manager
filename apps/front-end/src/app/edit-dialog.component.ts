@@ -1,8 +1,8 @@
-import { Component, Inject, OnDestroy } from '@angular/core';
-import { FormBuilder, FormControl, FormGroup } from '@angular/forms';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { TranslateCompiler, TranslateParser } from '@ngx-translate/core';
+import { Component, Inject, OnDestroy } from "@angular/core";
+import { FormBuilder, FormControl, FormGroup } from "@angular/forms";
+import { MAT_DIALOG_DATA } from "@angular/material/dialog";
+import { DomSanitizer, SafeHtml } from "@angular/platform-browser";
+import { TranslateCompiler, TranslateParser } from "@ngx-translate/core";
 import {
   BehaviorSubject,
   combineLatest,
@@ -11,13 +11,13 @@ import {
   Observable,
   of,
   Subject,
-} from 'rxjs';
-import { map, startWith, takeUntil } from 'rxjs/operators';
+} from "rxjs";
+import { map, startWith, takeUntil } from "rxjs/operators";
 
-import { LocalizationWithBaseType } from '../services/localizations.service';
+import { LocalizationWithBaseType } from "../services/localizations.service";
 
 @Component({
-  selector: 'app-edit',
+  selector: "app-edit",
   template: `
     <h1 mat-dialog-title>{{ key }}</h1>
     <div mat-dialog-content>
@@ -117,13 +117,13 @@ export class EditDialogComponent implements OnDestroy {
   readonly original: string;
   parameters: FormGroup;
   parameterSelection: Record<string, FormControl>;
-  translation = this.fb.control('');
+  translation = this.fb.control("");
 
   interpolationBase$: Observable<SafeHtml>;
   interpolation$: Observable<SafeHtml>;
 
   replaceOnPaste$ = new BehaviorSubject(
-    sessionStorage.getItem('REPLACE_ON_PASTE') === 'true'
+    sessionStorage.getItem("REPLACE_ON_PASTE") === "true"
   );
 
   private destroy$ = new Subject();
@@ -145,10 +145,10 @@ export class EditDialogComponent implements OnDestroy {
 
     const args = this.parseArgumentNames(data.element.base);
     this.parameters = this.fb.group(
-      args.reduce((acc, k) => ({ ...acc, [k]: this.fb.control('') }), {})
+      args.reduce((acc, k) => ({ ...acc, [k]: this.fb.control("") }), {})
     );
     this.parameterSelection = args.reduce(
-      (acc, k) => ({ ...acc, [k]: this.fb.control('') }),
+      (acc, k) => ({ ...acc, [k]: this.fb.control("") }),
       {}
     );
 
@@ -169,7 +169,7 @@ export class EditDialogComponent implements OnDestroy {
     );
 
     this.replaceOnPaste$.pipe(takeUntil(this.destroy$)).subscribe((value) => {
-      sessionStorage.setItem('REPLACE_ON_PASTE', value?.toString());
+      sessionStorage.setItem("REPLACE_ON_PASTE", value?.toString());
     });
   }
 
@@ -219,12 +219,12 @@ export class EditDialogComponent implements OnDestroy {
   }
 
   setToggle(arg: string, checked: boolean) {
-    this.parameterSelection[arg].setValue('switch');
+    this.parameterSelection[arg].setValue("switch");
     this.parameters.controls[arg].setValue(checked);
   }
 
   setText(arg: string, value: string) {
-    this.parameterSelection[arg].setValue('custom');
+    this.parameterSelection[arg].setValue("custom");
     this.parameters.controls[arg].setValue(value);
   }
 
@@ -238,7 +238,7 @@ export class EditDialogComponent implements OnDestroy {
 
   onPaste(event: ClipboardEvent) {
     if (this.replaceOnPaste$.value) {
-      const pasted = event.clipboardData.getData('text')?.trim();
+      const pasted = event.clipboardData.getData("text")?.trim();
       this.translation.setValue(pasted);
       event.preventDefault();
     }

@@ -1,56 +1,56 @@
-import axios from 'axios';
+import axios from "axios";
 
-describe('Server List', () => {
+describe("Server List", () => {
   expect.addSnapshotSerializer({
-    test: (v) => typeof v?.id === 'string' && typeof v?.url === 'string',
-    print: (v: any) => `${v.id.padEnd(10, ' ')} ${v.url}`,
+    test: (v) => typeof v?.id === "string" && typeof v?.url === "string",
+    print: (v: any) => `${v.id.padEnd(10, " ")} ${v.url}`,
   });
 
   const initialData = {
-    foo: 'test',
-    bar: 'test',
+    foo: "test",
+    bar: "test",
   };
 
   beforeAll(async () => {
-    const deleteDB = await axios.delete('/db', {});
+    const deleteDB = await axios.delete("/db", {});
     expect(deleteDB.status).toEqual(204);
 
-    const configRes = await axios.post('/config', {
-      locales: ['en_US', 'de_DE', 'de_AT', 'fr_BE', 'fr_FR', 'es_ES'],
-      themes: ['b2b', 'b2c'],
-      baseLang: 'en',
+    const configRes = await axios.post("/config", {
+      locales: ["en_US", "de_DE", "de_AT", "fr_BE", "fr_FR", "es_ES"],
+      themes: ["b2b", "b2c"],
+      baseLang: "en",
     });
     expect(configRes.data).toBeEmpty();
     expect(configRes.status).toEqual(204);
 
-    const combinationsRes = await axios.put('/config/combinations', {
-      en_US: ['b2c', 'b2b'],
-      de_DE: ['b2c', 'b2b'],
-      de_AT: ['b2c'],
-      fr_FR: ['b2b'],
-      fr_BE: ['b2c'],
-      es_ES: ['b2c'],
+    const combinationsRes = await axios.put("/config/combinations", {
+      en_US: ["b2c", "b2b"],
+      de_DE: ["b2c", "b2b"],
+      de_AT: ["b2c"],
+      fr_FR: ["b2b"],
+      fr_BE: ["b2c"],
+      es_ES: ["b2c"],
     });
     expect(combinationsRes.data).toBeEmpty();
     expect(combinationsRes.status).toEqual(204);
 
-    for (const lang of ['en', 'de', 'fr', 'es']) {
-      const res = await axios.post('/import/' + lang, initialData, {
+    for (const lang of ["en", "de", "fr", "es"]) {
+      const res = await axios.post("/import/" + lang, initialData, {
         params: {
-          type: 'replace',
+          type: "replace",
         },
       });
 
-      expect(res.data).toEqual('Imported 2 keys.');
+      expect(res.data).toEqual("Imported 2 keys.");
       expect(res.status).toEqual(200);
     }
   });
 
-  describe('combinations query', () => {
+  describe("combinations query", () => {
     let listResponse;
 
-    it('should return all combinations respecting supplied combinations in the list response', async () => {
-      listResponse = await axios.get('/list?query=combinations');
+    it("should return all combinations respecting supplied combinations in the list response", async () => {
+      listResponse = await axios.get("/list?query=combinations");
       expect(listResponse.status).toEqual(200);
       expect(listResponse.data).toMatchInlineSnapshot(`
         Array [
@@ -83,7 +83,7 @@ describe('Server List', () => {
       `);
     });
 
-    it('should return localization data for every list entry', async () => {
+    it("should return localization data for every list entry", async () => {
       for (const item of listResponse.data) {
         const tr = await axios.get(item.url);
         expect(tr.status).toEqual(200);
@@ -92,38 +92,38 @@ describe('Server List', () => {
     });
   });
 
-  describe('if no combinations are configured', () => {
+  describe("if no combinations are configured", () => {
     beforeAll(async () => {
-      const res = await axios.put('/config/combinations', {});
+      const res = await axios.put("/config/combinations", {});
       expect(res.status).toEqual(204);
     });
 
-    it('should not report an error when retrieving combination entries', async () => {
-      const res = await axios.get('/list?query=combinations');
+    it("should not report an error when retrieving combination entries", async () => {
+      const res = await axios.get("/list?query=combinations");
       expect(res.status).toEqual(200);
     });
 
-    it('should not report an error when retrieving all entries', async () => {
-      const res = await axios.get('/list?query=all');
+    it("should not report an error when retrieving all entries", async () => {
+      const res = await axios.get("/list?query=all");
       expect(res.status).toEqual(200);
     });
 
-    it('should not report an error when retrieving all locales', async () => {
-      const res = await axios.get('/list?query=locale');
+    it("should not report an error when retrieving all locales", async () => {
+      const res = await axios.get("/list?query=locale");
       expect(res.status).toEqual(200);
     });
 
-    it('should not report an error for default query', async () => {
-      const res = await axios.get('/list');
+    it("should not report an error for default query", async () => {
+      const res = await axios.get("/list");
       expect(res.status).toEqual(200);
     });
   });
 
-  describe('combinations query without restriction', () => {
+  describe("combinations query without restriction", () => {
     let listResponse;
 
-    it('should return all possible combinations in the list response', async () => {
-      listResponse = await axios.get('/list?query=combinations');
+    it("should return all possible combinations in the list response", async () => {
+      listResponse = await axios.get("/list?query=combinations");
       expect(listResponse.status).toEqual(200);
       expect(listResponse.data).toMatchInlineSnapshot(`
         Array [
@@ -161,7 +161,7 @@ describe('Server List', () => {
       `);
     });
 
-    it('should return localization data for every list entry', async () => {
+    it("should return localization data for every list entry", async () => {
       for (const item of listResponse.data) {
         const tr = await axios.get(item.url);
         expect(tr.status).toEqual(200);
@@ -170,11 +170,11 @@ describe('Server List', () => {
     });
   });
 
-  describe('locale query', () => {
+  describe("locale query", () => {
     let listResponse;
 
-    it('should return all locale links in the list response', async () => {
-      listResponse = await axios.get('/list?query=locale');
+    it("should return all locale links in the list response", async () => {
+      listResponse = await axios.get("/list?query=locale");
       expect(listResponse.status).toEqual(200);
       expect(listResponse.data).toMatchInlineSnapshot(`
         Array [
@@ -188,7 +188,7 @@ describe('Server List', () => {
       `);
     });
 
-    it('should return localization data for every list entry', async () => {
+    it("should return localization data for every list entry", async () => {
       for (const item of listResponse.data) {
         const tr = await axios.get(item.url);
         expect(tr.status).toEqual(200);
@@ -197,11 +197,11 @@ describe('Server List', () => {
     });
   });
 
-  describe('lang query', () => {
+  describe("lang query", () => {
     let listResponse;
 
-    it('should return all language links in the list response', async () => {
-      listResponse = await axios.get('/list?query=lang');
+    it("should return all language links in the list response", async () => {
+      listResponse = await axios.get("/list?query=lang");
       expect(listResponse.status).toEqual(200);
       expect(listResponse.data).toMatchInlineSnapshot(`
         Array [
@@ -213,7 +213,7 @@ describe('Server List', () => {
       `);
     });
 
-    it('should return localization data for every list entry', async () => {
+    it("should return localization data for every list entry", async () => {
       for (const item of listResponse.data) {
         const tr = await axios.get(item.url);
         expect(tr.status).toEqual(200);
@@ -222,51 +222,51 @@ describe('Server List', () => {
     });
   });
 
-  describe('parameter handling', () => {
-    it('should include request parameters in follow up links', async () => {
-      const listResponse = await axios.get('/list?exact=true&foo=bar');
+  describe("parameter handling", () => {
+    it("should include request parameters in follow up links", async () => {
+      const listResponse = await axios.get("/list?exact=true&foo=bar");
       expect(listResponse.status).toEqual(200);
 
       listResponse.data.forEach((link) => {
-        expect(link.url).toInclude('unblocked=true');
-        expect(link.url).toInclude('exact=true');
-        expect(link.url).toInclude('foo=bar');
+        expect(link.url).toInclude("unblocked=true");
+        expect(link.url).toInclude("exact=true");
+        expect(link.url).toInclude("foo=bar");
       });
     });
   });
 
-  describe('if no themes are configured', () => {
+  describe("if no themes are configured", () => {
     beforeAll(async () => {
-      const res = await axios.put('/config/themes', []);
+      const res = await axios.put("/config/themes", []);
       expect(res.status).toEqual(204);
     });
 
-    it('should not report an error when retrieving all locales', async () => {
-      const res = await axios.get('/list?query=locale');
+    it("should not report an error when retrieving all locales", async () => {
+      const res = await axios.get("/list?query=locale");
       expect(res.status).toEqual(200);
     });
 
-    it('should not report an error for default query', async () => {
-      const res = await axios.get('/list');
+    it("should not report an error for default query", async () => {
+      const res = await axios.get("/list");
       expect(res.status).toEqual(200);
     });
   });
 
-  describe('if no locales are configured', () => {
+  describe("if no locales are configured", () => {
     beforeAll(async () => {
-      const res = await axios.put('/config/locales', []);
+      const res = await axios.put("/config/locales", []);
       expect(res.status).toEqual(204);
     });
 
-    it('should not report an error when retrieving all locales', async () => {
-      const res = await axios.get('/list?query=locale');
-      expect(res.data).toEqual('No locales are configured.');
+    it("should not report an error when retrieving all locales", async () => {
+      const res = await axios.get("/list?query=locale");
+      expect(res.data).toEqual("No locales are configured.");
       expect(res.status).toEqual(400);
     });
 
-    it('should not report an error for default query', async () => {
-      const res = await axios.get('/list');
-      expect(res.data).toEqual('No locales are configured.');
+    it("should not report an error for default query", async () => {
+      const res = await axios.get("/list");
+      expect(res.data).toEqual("No locales are configured.");
       expect(res.status).toEqual(400);
     });
   });

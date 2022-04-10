@@ -4,17 +4,17 @@ import {
   HttpRequest,
   HttpErrorResponse,
   HttpHeaders,
-} from '@angular/common/http';
-import { Injectable } from '@angular/core';
-import { BehaviorSubject, EMPTY } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+} from "@angular/common/http";
+import { Injectable } from "@angular/core";
+import { BehaviorSubject, EMPTY } from "rxjs";
+import { catchError } from "rxjs/operators";
 
-import { NotificationService } from './notification.service';
+import { NotificationService } from "./notification.service";
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class AuthInterceptor implements HttpInterceptor {
   private apiPassword$ = new BehaviorSubject<string>(
-    sessionStorage.getItem('API_PASSWORD') || ''
+    sessionStorage.getItem("API_PASSWORD") || ""
   );
 
   private headers() {
@@ -30,14 +30,14 @@ export class AuthInterceptor implements HttpInterceptor {
     return next.handle(req.clone({ headers: this.headers() })).pipe(
       catchError((err) => {
         if (err instanceof HttpErrorResponse && err.status === 401) {
-          const pass = window.prompt('Enter API password');
+          const pass = window.prompt("Enter API password");
           this.apiPassword$.next(pass);
-          sessionStorage.setItem('API_PASSWORD', pass);
+          sessionStorage.setItem("API_PASSWORD", pass);
         } else if (err instanceof HttpErrorResponse && err.status === 0) {
-          this.notification.error('Backend unavailable');
+          this.notification.error("Backend unavailable");
         } else {
           this.notification.error(
-            typeof err.error === 'string' ? err.error : err.message
+            typeof err.error === "string" ? err.error : err.message
           );
         }
         return EMPTY;

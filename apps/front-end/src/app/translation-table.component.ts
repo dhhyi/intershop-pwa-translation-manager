@@ -1,10 +1,10 @@
-import { AfterViewInit, Component, OnDestroy, ViewChild } from '@angular/core';
-import { FormBuilder, FormControl } from '@angular/forms';
-import { MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
-import { MatSlideToggleChange } from '@angular/material/slide-toggle';
-import { DomSanitizer } from '@angular/platform-browser';
-import { ActivatedRoute, Router } from '@angular/router';
+import { AfterViewInit, Component, OnDestroy, ViewChild } from "@angular/core";
+import { FormBuilder, FormControl } from "@angular/forms";
+import { MatDialog, MatDialogRef } from "@angular/material/dialog";
+import { MatPaginator, PageEvent } from "@angular/material/paginator";
+import { MatSlideToggleChange } from "@angular/material/slide-toggle";
+import { DomSanitizer } from "@angular/platform-browser";
+import { ActivatedRoute, Router } from "@angular/router";
 import {
   faTimes,
   faEdit,
@@ -15,10 +15,10 @@ import {
   faFilter,
   faBan,
   faSitemap,
-} from '@fortawesome/free-solid-svg-icons';
-import escapeStringRegexp from 'escape-string-regexp';
-import { mapValues } from 'lodash-es';
-import { combineLatest, Observable, Subject } from 'rxjs';
+} from "@fortawesome/free-solid-svg-icons";
+import escapeStringRegexp from "escape-string-regexp";
+import { mapValues } from "lodash-es";
+import { combineLatest, Observable, Subject } from "rxjs";
 import {
   debounceTime,
   delay,
@@ -28,22 +28,22 @@ import {
   startWith,
   switchMap,
   takeUntil,
-} from 'rxjs/operators';
+} from "rxjs/operators";
 
-import { ConfigService } from '../services/config.service';
-import { TranslationFilters, filterTranslations } from '../services/filters';
+import { ConfigService } from "../services/config.service";
+import { TranslationFilters, filterTranslations } from "../services/filters";
 import {
   LocalizationsService,
   LocalizationWithBaseType,
-} from '../services/localizations.service';
-import { NotificationService } from '../services/notification.service';
+} from "../services/localizations.service";
+import { NotificationService } from "../services/notification.service";
 
-import { ConfirmDialogComponent } from './confirm-dialog.component';
-import { EditDialogComponent } from './edit-dialog.component';
-import { UploadDialogComponent } from './upload-dialog.component';
+import { ConfirmDialogComponent } from "./confirm-dialog.component";
+import { EditDialogComponent } from "./edit-dialog.component";
+import { UploadDialogComponent } from "./upload-dialog.component";
 
 @Component({
-  selector: 'app-translation-table',
+  selector: "app-translation-table",
   template: `
     <mat-toolbar>
       <mat-form-field appearance="standard">
@@ -284,19 +284,19 @@ import { UploadDialogComponent } from './upload-dialog.component';
   ],
 })
 export class TranslationTableComponent implements AfterViewInit, OnDestroy {
-  lang = this.fb.control('');
+  lang = this.fb.control("");
 
   @ViewChild(MatPaginator) paginator: MatPaginator;
 
   pagedTranslations$: Observable<LocalizationWithBaseType[]>;
 
   columns = [
-    { id: 'override', value: '' },
-    { id: 'key', value: 'Translation Key' },
-    { id: 'base', value: 'Base Language' },
-    { id: 'edit', value: '' },
-    { id: 'tr', value: 'Translation' },
-    { id: 'delete', value: '' },
+    { id: "override", value: "" },
+    { id: "key", value: "Translation Key" },
+    { id: "base", value: "Base Language" },
+    { id: "edit", value: "" },
+    { id: "tr", value: "Translation" },
+    { id: "delete", value: "" },
   ];
 
   filters = this.fb.group({
@@ -319,13 +319,13 @@ export class TranslationTableComponent implements AfterViewInit, OnDestroy {
   filtersActive$: Observable<boolean>;
 
   displayedColumns$ = combineLatest([
-    this.config.select('baseLang'),
+    this.config.select("baseLang"),
     this.lang.valueChanges,
   ]).pipe(
     map(([base, selected]) =>
       base === selected
         ? this.columns.filter((c) =>
-            ['override', 'key', 'base'].some((id) => c.id === id)
+            ["override", "key", "base"].some((id) => c.id === id)
           )
         : this.columns
     ),
@@ -362,7 +362,7 @@ export class TranslationTableComponent implements AfterViewInit, OnDestroy {
         }
 
         Object.entries(this.filters.controls)
-          .filter(([c]) => c.startsWith('only'))
+          .filter(([c]) => c.startsWith("only"))
           .forEach(([, control]) => {
             if (lang) {
               control.enable();
@@ -373,7 +373,7 @@ export class TranslationTableComponent implements AfterViewInit, OnDestroy {
       });
 
     route.queryParams
-      .pipe(pluck('lang'), delay(0), takeUntil(this.destroy$))
+      .pipe(pluck("lang"), delay(0), takeUntil(this.destroy$))
       .subscribe((lang) => {
         if (lang && lang !== this.lang.value) {
           this.lang.setValue(lang);
@@ -391,8 +391,8 @@ export class TranslationTableComponent implements AfterViewInit, OnDestroy {
       startWith(this.filters.value),
       map((record) =>
         mapValues(record, (v: unknown) =>
-          typeof v === 'string'
-            ? new RegExp(`${escapeStringRegexp(v.toString())}`, 'i')
+          typeof v === "string"
+            ? new RegExp(`${escapeStringRegexp(v.toString())}`, "i")
             : v
         )
       ),
@@ -418,11 +418,11 @@ export class TranslationTableComponent implements AfterViewInit, OnDestroy {
   );
 
   csvDownloadFile$ = this.translations$.pipe(
-    map((data) => data.map((e) => this.csvLine(e)).join('\n')),
+    map((data) => data.map((e) => this.csvLine(e)).join("\n")),
     map((data) =>
       this.sanitizer.bypassSecurityTrustResourceUrl(
         window.URL.createObjectURL(
-          new Blob([data], { type: 'application/octet-stream' })
+          new Blob([data], { type: "application/octet-stream" })
         )
       )
     )
@@ -454,7 +454,7 @@ export class TranslationTableComponent implements AfterViewInit, OnDestroy {
   }
 
   isIconColumn(id: string) {
-    return this.columns.find((c) => c.id === id)?.value === '';
+    return this.columns.find((c) => c.id === id)?.value === "";
   }
 
   edit(element: LocalizationWithBaseType) {
@@ -464,7 +464,7 @@ export class TranslationTableComponent implements AfterViewInit, OnDestroy {
       );
       return;
     }
-    if (this.config.get('baseLang') === this.lang.value) {
+    if (this.config.get("baseLang") === this.lang.value) {
       this.notification.warning(`Editing base translations is not supported.`);
       return;
     }
@@ -475,7 +475,7 @@ export class TranslationTableComponent implements AfterViewInit, OnDestroy {
         data: {
           element,
           google:
-            this.config.get('translateAvailable') &&
+            this.config.get("translateAvailable") &&
             this.service.translate(this.lang.value, element.base),
         },
       }
@@ -509,7 +509,7 @@ export class TranslationTableComponent implements AfterViewInit, OnDestroy {
     const ref: MatDialogRef<
       UploadDialogComponent,
       { data: string; uploadType: string }
-    > = this.dialog.open(UploadDialogComponent, { maxWidth: '40vw' });
+    > = this.dialog.open(UploadDialogComponent, { maxWidth: "40vw" });
 
     ref
       .afterClosed()
@@ -520,12 +520,12 @@ export class TranslationTableComponent implements AfterViewInit, OnDestroy {
   }
 
   private escapeCsvCell(s: string): string {
-    return !s ? '' : '"' + s?.replace(/"/g, '""') + '"';
+    return !s ? "" : '"' + s?.replace(/"/g, '""') + '"';
   }
 
   private csvLine(e: LocalizationWithBaseType): string {
     return [e.key, this.escapeCsvCell(e.base), this.escapeCsvCell(e.tr)].join(
-      ','
+      ","
     );
   }
 

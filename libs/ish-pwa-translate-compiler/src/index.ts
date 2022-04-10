@@ -1,1 +1,1 @@
-export * from './lib/pwa-translate-compiler';
+export * from "./lib/pwa-translate-compiler";

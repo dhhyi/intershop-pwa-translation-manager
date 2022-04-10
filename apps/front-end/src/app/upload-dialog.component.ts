@@ -1,9 +1,9 @@
-import { Component, ElementRef, ViewChild } from '@angular/core';
-import { faInfoCircle, faPaperclip } from '@fortawesome/free-solid-svg-icons';
+import { Component, ElementRef, ViewChild } from "@angular/core";
+import { faInfoCircle, faPaperclip } from "@fortawesome/free-solid-svg-icons";
 
-import { NotificationService } from '../services/notification.service';
+import { NotificationService } from "../services/notification.service";
 @Component({
-  selector: 'app-upload',
+  selector: "app-upload",
   template: `
     <h1 mat-dialog-title>Upload</h1>
     <div mat-dialog-content>
@@ -122,23 +122,23 @@ import { NotificationService } from '../services/notification.service';
   ],
 })
 export class UploadDialogComponent {
-  @ViewChild('fileInput')
+  @ViewChild("fileInput")
   fileInput: ElementRef;
 
   panelOpenState: boolean;
 
   file: File | null = null;
   data: string;
-  uploadType: keyof UploadDialogComponent['uploadTypes'] = 'overwrite';
+  uploadType: keyof UploadDialogComponent["uploadTypes"] = "overwrite";
 
   faInfoCircle = faInfoCircle;
   faPaperclip = faPaperclip;
 
   uploadTypes = {
-    replace: 'Replace existing translations with the new ones.',
+    replace: "Replace existing translations with the new ones.",
     overwrite:
-      'Overwrite all existing translations with the new ones but keep the old ones not part of the upload.',
-    add: 'Only add new translations from the upload, keep all existing translations.',
+      "Overwrite all existing translations with the new ones but keep the old ones not part of the upload.",
+    add: "Only add new translations from the upload, keep all existing translations.",
   };
 
   constructor(private notification: NotificationService) {}

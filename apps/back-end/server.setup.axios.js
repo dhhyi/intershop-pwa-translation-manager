@@ -1,7 +1,7 @@
-global.axios = require('axios');
+global.axios = require("axios");
 
 global.axios.defaults.baseURL =
-  'http://localhost:' + (process.env.PORT || '8001');
+  "http://localhost:" + (process.env.PORT || "8001");
 
 global.axios.interceptors.response.use(
   (response) => response,

@@ -1,14 +1,14 @@
-import { Component, OnDestroy } from '@angular/core';
-import { FormBuilder, FormControl } from '@angular/forms';
-import { MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Component, OnDestroy } from "@angular/core";
+import { FormBuilder, FormControl } from "@angular/forms";
+import { MatDialog, MatDialogRef } from "@angular/material/dialog";
+import { ActivatedRoute, Router } from "@angular/router";
 import {
   faArrowCircleLeft,
   faBan,
   faEdit,
   faFilter,
   faTrash,
-} from '@fortawesome/free-solid-svg-icons';
+} from "@fortawesome/free-solid-svg-icons";
 import {
   combineLatest,
   delay,
@@ -19,22 +19,22 @@ import {
   Subject,
   switchMap,
   takeUntil,
-} from 'rxjs';
+} from "rxjs";
 
-import { ConfigService } from '../services/config.service';
-import { filterOverrides, OverridesFilters } from '../services/filters';
+import { ConfigService } from "../services/config.service";
+import { filterOverrides, OverridesFilters } from "../services/filters";
 import {
   LocalizationsService,
   LocalizationWithBaseType,
   OverridesType,
-} from '../services/localizations.service';
-import { NotificationService } from '../services/notification.service';
+} from "../services/localizations.service";
+import { NotificationService } from "../services/notification.service";
 
-import { ConfirmDialogComponent } from './confirm-dialog.component';
-import { EditDialogComponent } from './edit-dialog.component';
+import { ConfirmDialogComponent } from "./confirm-dialog.component";
+import { EditDialogComponent } from "./edit-dialog.component";
 
 @Component({
-  selector: 'app-translation-detail',
+  selector: "app-translation-detail",
   template: `
     <mat-toolbar>
       <button
@@ -49,7 +49,7 @@ import { EditDialogComponent } from './edit-dialog.component';
         <mat-label>Language</mat-label>
         <mat-select [formControl]="lang">
           <mat-option *ngFor="let lang of languages$ | async" [value]="lang">{{
-            lang || 'all'
+            lang || "all"
           }}</mat-option>
         </mat-select>
       </mat-form-field>
@@ -207,12 +207,12 @@ import { EditDialogComponent } from './edit-dialog.component';
   ],
 })
 export class TranslationDetailComponent implements OnDestroy {
-  key$ = this.route.params.pipe(pluck('key'));
+  key$ = this.route.params.pipe(pluck("key"));
 
-  lang = this.fb.control('');
+  lang = this.fb.control("");
 
   languages$ = this.config
-    .select('languages')
+    .select("languages")
     .pipe(map((langs) => [undefined, ...langs]));
 
   overrides$ = combineLatest([this.lang.valueChanges, this.key$]).pipe(
@@ -227,10 +227,10 @@ export class TranslationDetailComponent implements OnDestroy {
   );
 
   columns = [
-    { id: 'id', value: 'ID' },
-    { id: 'edit', value: '' },
-    { id: 'interpolated', value: 'Value' },
-    { id: 'delete', value: '' },
+    { id: "id", value: "ID" },
+    { id: "edit", value: "" },
+    { id: "interpolated", value: "Value" },
+    { id: "delete", value: "" },
   ];
 
   displayedColumns = this.columns.map((c) => c.id);
@@ -267,7 +267,7 @@ export class TranslationDetailComponent implements OnDestroy {
     private notification: NotificationService
   ) {
     route.queryParams
-      .pipe(pluck('lang'), delay(100), takeUntil(this.destroy$))
+      .pipe(pluck("lang"), delay(100), takeUntil(this.destroy$))
       .subscribe((lang) => {
         if (lang !== this.lang.value) {
           this.lang.setValue(lang);
@@ -280,7 +280,7 @@ export class TranslationDetailComponent implements OnDestroy {
   }
 
   isIconColumn(id: string) {
-    return this.columns.find((c) => c.id === id)?.value === '';
+    return this.columns.find((c) => c.id === id)?.value === "";
   }
 
   edit(element: OverridesType) {
@@ -290,7 +290,7 @@ export class TranslationDetailComponent implements OnDestroy {
       );
       return;
     }
-    if (this.config.get('baseLang') === element.updateLang) {
+    if (this.config.get("baseLang") === element.updateLang) {
       this.notification.warning(`Editing base translations is not supported.`);
       return;
     }

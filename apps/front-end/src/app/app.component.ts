@@ -1,9 +1,9 @@
-import { Component } from '@angular/core';
+import { Component } from "@angular/core";
 
-import { ConfigService } from '../services/config.service';
+import { ConfigService } from "../services/config.service";
 
 @Component({
-  selector: 'app-root',
+  selector: "app-root",
   template: `
     <app-maintenance
       *ngIf="config.select('maintenance') | async; else normal"
