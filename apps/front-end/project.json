@@ -22,7 +22,8 @@
           "./node_modules/ngx-toastr/toastr.css",
           "apps/front-end/src/styles.css"
         ],
-        "scripts": []
+        "scripts": [],
+        "extractLicenses": false
       },
       "configurations": {
         "production": {
@@ -50,7 +51,6 @@
           "buildOptimizer": false,
           "optimization": false,
           "vendorChunk": true,
-          "extractLicenses": false,
           "sourceMap": true,
           "namedChunks": true
         }
