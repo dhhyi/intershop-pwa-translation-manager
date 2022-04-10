@@ -31,15 +31,16 @@
     },
     "serve": {
       "executor": "@nrwl/node:node",
-      "options": {},
+      "options": {
+        "buildTarget": "back-end:build:development"
+      },
       "configurations": {
         "buildTarget": "back-end:build:production",
         "testing": {
-          "args": ["--port", "8001", "--testing"],
+          "args": ["--port", "8001", "--testing", "--silent"],
           "watch": false
         },
         "development": {
-          "buildTarget": "back-end:build:development",
           "args": ["--port", "8000", "--dbLocation", "."],
           "watch": true
         }

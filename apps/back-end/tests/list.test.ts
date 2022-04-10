@@ -1,9 +1,10 @@
 import axios from "axios";
+import { Override } from "@pwa-translation-manager/api";
 
 describe("Server List", () => {
   expect.addSnapshotSerializer({
     test: (v) => typeof v?.id === "string" && typeof v?.url === "string",
-    print: (v: any) => `${v.id.padEnd(10, " ")} ${v.url}`,
+    print: (v: Override) => `${v.id.padEnd(10, " ")} ${v.url}`,
   });
 
   const initialData = {

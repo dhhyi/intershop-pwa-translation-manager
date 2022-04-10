@@ -24,4 +24,5 @@ export interface Override {
   interpolated: string;
   value: string;
   updateLang: string;
+  url: string;
 }
