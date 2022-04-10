@@ -1,3 +1,5 @@
+/.angular
+/coverage
 *.ico
 /src/assets
 /.husky
