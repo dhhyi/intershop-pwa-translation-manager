@@ -1,0 +1,12 @@
+{
+  "copyFiles": [
+    {
+      "from": "https://raw.githubusercontent.com/intershop/intershop-pwa/master/src/app/core/utils/translate/pwa-translate-compiler.ts",
+      "to": "src/lib/pwa-translate-compiler.ts"
+    },
+    {
+      "from": "https://raw.githubusercontent.com/intershop/intershop-pwa/master/src/app/core/utils/translate/translations.type.ts",
+      "to": "src/lib/translations.type.ts"
+    }
+  ]
+}

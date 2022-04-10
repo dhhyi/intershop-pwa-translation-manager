@@ -1,0 +1,74 @@
+{
+  "root": "apps/back-end",
+  "sourceRoot": "apps/back-end/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/node:webpack",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/back-end",
+        "main": "apps/back-end/src/server.ts",
+        "outputFileName": "server.js",
+        "tsConfig": "apps/back-end/tsconfig.app.json",
+        "webpackConfig": "apps/back-end/custom-webpack.config.js"
+      },
+      "configurations": {
+        "production": {
+          "optimization": true,
+          "extractLicenses": true,
+          "inspect": false,
+          "sourceMap": false
+        },
+        "development": {
+          "optimization": false,
+          "extractLicenses": false,
+          "inspect": true,
+          "sourceMap": true
+        }
+      },
+      "defaultConfiguration": "production"
+    },
+    "serve": {
+      "executor": "@nrwl/node:node",
+      "options": {},
+      "configurations": {
+        "buildTarget": "back-end:build:production",
+        "testing": {
+          "args": ["--port", "8001", "--testing"],
+          "watch": false
+        },
+        "development": {
+          "buildTarget": "back-end:build:development",
+          "args": ["--port", "8000", "--dbLocation", "."],
+          "watch": true
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["apps/back-end/**/*.{ts,js}"]
+      }
+    },
+    "test-single": {
+      "executor": "@nrwl/jest:jest",
+      "outputs": ["coverage/apps/back-end"],
+      "options": {
+        "jestConfig": "apps/back-end/jest.config.js",
+        "passWithNoTests": false,
+        "runInBand": true
+      }
+    },
+    "test": {
+      "executor": "@nrwl/workspace:run-commands",
+      "options": {
+        "commands": [
+          "start-server-and-test 'npx nx run back-end:serve:testing' 'http://localhost:8001/version' 'npx nx run back-end:test-single'"
+        ]
+      }
+    }
+  },
+  "tags": []
+}

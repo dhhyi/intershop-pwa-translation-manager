@@ -1,0 +1,12 @@
+{
+  "copyFiles": [
+    {
+      "from": "config-example.json",
+      "to": "../../config.json"
+    },
+    {
+      "from": "db-example.json",
+      "to": "../../db.json"
+    }
+  ]
+}

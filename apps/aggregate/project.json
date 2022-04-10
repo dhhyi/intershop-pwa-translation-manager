@@ -1,0 +1,46 @@
+{
+  "projectType": "application",
+  "root": "apps/aggregate",
+  "sourceRoot": "apps/aggregate/src",
+  "prefix": "pwa-translation-manager",
+  "targets": {
+    "build": {
+      "builder": "@nrwl/workspace:run-commands",
+      "options": {
+        "commands": []
+      },
+      "dependsOn": [
+        {
+          "target": "build",
+          "projects": "dependencies"
+        }
+      ]
+    },
+    "copy-example-config": {
+      "builder": "@nrwl/workspace:run-commands",
+      "options": {
+        "commands": [
+          "npx copy-files-from-to --config apps/aggregate/copy-example-config.json"
+        ]
+      }
+    },
+    "serve": {
+      "builder": "@nrwl/workspace:run-commands",
+      "options": {
+        "commands": [
+          "nx serve front-end --open",
+          "nx serve back-end -c development"
+        ],
+        "parallel": true
+      },
+      "dependsOn": [
+        {
+          "target": "copy-example-config",
+          "projects": "self"
+        }
+      ]
+    }
+  },
+  "tags": [],
+  "implicitDependencies": ["front-end", "back-end"]
+}

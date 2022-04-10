@@ -1,0 +1,30 @@
+{
+  "root": "libs/ish-pwa-translate-compiler",
+  "sourceRoot": "libs/ish-pwa-translate-compiler/src",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/ish-pwa-translate-compiler",
+        "main": "libs/ish-pwa-translate-compiler/src/index.ts",
+        "tsConfig": "libs/ish-pwa-translate-compiler/tsconfig.lib.json"
+      },
+      "dependsOn": [
+        {
+          "target": "copy-pwa-files",
+          "projects": "self"
+        }
+      ]
+    },
+    "copy-pwa-files": {
+      "builder": "@nrwl/workspace:run-commands",
+      "options": {
+        "commands": [
+          "npx copy-files-from-to --config libs/ish-pwa-translate-compiler/copy-pwa-translate-compiler.json"
+        ]
+      }
+    }
+  },
+  "tags": []
+}

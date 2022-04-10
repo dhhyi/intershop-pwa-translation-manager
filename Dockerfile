@@ -1,19 +1,11 @@
 FROM node:16-alpine as npm_dev
 WORKDIR /ws
 COPY package.json package-lock.json /ws/
-RUN npm i --ignore-scripts --production
-
-FROM npm_dev as fe
+RUN npm i --ignore-scripts --prefer-offline --no-audit
 RUN find node_modules -path '*/esbuild/install.js' | xargs -rt -n 1 node
-RUN npm run ngcc
-COPY src /ws/src
-COPY angular.json .browserslistrc tsconfig.json tsconfig.app.json /ws/
-RUN npm run copy-files -- --mode production
-RUN npm run build:fe
-
-FROM npm_dev as be
-COPY server.mjs webpack.config.js /ws/
-RUN npm run build:be
+COPY . /ws/
+RUN npm run postinstall
+RUN npm run build
 
 FROM node:16-alpine as npm_final
 WORKDIR /ws
@@ -22,9 +14,9 @@ RUN node npm-selective-install -g express
 
 FROM node:16-alpine as final
 COPY --from=npm_final /usr/local/lib/node_modules /usr/local/lib/node_modules
-COPY --from=be /ws/dist /dist
-COPY --from=fe /ws/dist /dist
+COPY --from=npm_dev /ws/dist/apps/front-end/* /dist/
+COPY --from=npm_dev /ws/dist/apps/back-end/* /dist/
 ARG DISPLAY_VERSION=not_set
 ENV DISPLAY_VERSION=${DISPLAY_VERSION} NODE_PATH=/usr/local/lib/node_modules
 EXPOSE 8000
-CMD ["node", "/dist/server-bundle.js"]
+CMD ["node", "/dist/server.js"]
