@@ -35,10 +35,13 @@
         "buildTarget": "back-end:build:development"
       },
       "configurations": {
-        "buildTarget": "back-end:build:production",
         "testing": {
           "args": ["--port", "8001", "--testing", "--silent"],
           "watch": false
+        },
+        "testing-interactive": {
+          "args": ["--port", "8001", "--testing"],
+          "watch": true
         },
         "development": {
           "args": ["--port", "8000", "--dbLocation", "."],
@@ -53,7 +56,7 @@
         "lintFilePatterns": ["apps/back-end/**/*.{ts,js}"]
       }
     },
-    "test-single": {
+    "jest": {
       "executor": "@nrwl/jest:jest",
       "outputs": ["coverage/apps/back-end"],
       "options": {
@@ -66,7 +69,7 @@
       "executor": "@nrwl/workspace:run-commands",
       "options": {
         "commands": [
-          "start-server-and-test 'npx nx run back-end:serve:testing' 'http://localhost:8001/version' 'npx nx run back-end:test-single'"
+          "start-server-and-test 'npx nx run back-end:serve:testing' 'http://localhost:8001/version' 'npx nx run back-end:jest'"
         ]
       }
     }
