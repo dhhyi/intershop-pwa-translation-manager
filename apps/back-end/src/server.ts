@@ -903,6 +903,29 @@ app.post("/translate", async (req, res, next) => {
 
 // </TRANSLATE>
 
+// <COPY-KEY>
+
+app.post("/copy-key", async (req, res, next) => {
+  try {
+    console.log("copy-key", req.body.from, "->", req.body.to);
+    const affected = [];
+    Object.entries(localizations.data).forEach(([lang, translations]) => {
+      if (translations[req.body.from] !== undefined) {
+        affected.push(lang);
+        translations[req.body.to] = translations[req.body.from];
+      }
+    });
+
+    await localizations.write();
+
+    return res.send("Copied key in " + affected.join(", ") + ".");
+  } catch (error) {
+    next(error);
+  }
+});
+
+// </COPY-KEY>
+
 app.use((req, res, next) => {
   if (req.method !== "GET") {
     return res.sendStatus(405);
