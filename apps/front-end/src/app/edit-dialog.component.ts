@@ -55,7 +55,7 @@ import { LocalizationWithBaseType } from "../services/localizations.service";
         </div>
       </ng-container>
       <button
-        *ngIf="data.google && noParameters"
+        *ngIf="data.google"
         mat-raised-button
         (click)="applyGoogleTranslate()"
       >
@@ -171,10 +171,6 @@ export class EditDialogComponent implements OnDestroy {
     this.replaceOnPaste$.pipe(takeUntil(this.destroy$)).subscribe((value) => {
       sessionStorage.setItem("REPLACE_ON_PASTE", value?.toString());
     });
-  }
-
-  get noParameters(): boolean {
-    return !Object.keys(this.parameters || {}).length;
   }
 
   private renderTranslation(tr: string, params: object): string {
