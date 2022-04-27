@@ -1,3 +1,4 @@
+import { registerLocaleData } from "@angular/common";
 import { AfterViewInit, Component, OnDestroy, ViewChild } from "@angular/core";
 import { FormBuilder, FormControl } from "@angular/forms";
 import { MatDialog, MatDialogRef } from "@angular/material/dialog";
@@ -356,8 +357,15 @@ export class TranslationTableComponent implements AfterViewInit, OnDestroy {
   ) {
     this.lang.valueChanges
       .pipe(startWith(this.lang.value), takeUntil(this.destroy$))
-      .subscribe((lang) => {
+      .subscribe(async (lang) => {
         if (lang) {
+          const localeData = await import(
+            /* webpackInclude: /(locales\/[a-z]{2,3}).m?js$/ */
+            /* webpackChunkName: "locale-data-[request]" */
+            `node_modules/@angular/common/locales/${lang}`
+          ).then((m) => m.default);
+          registerLocaleData(localeData);
+
           router.navigate([], { queryParams: { lang }, relativeTo: route });
         }
 
