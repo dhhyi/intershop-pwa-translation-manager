@@ -476,7 +476,7 @@ export class TranslationTableComponent implements AfterViewInit, OnDestroy {
           element,
           google:
             this.config.get("translateAvailable") &&
-            this.service.translate(this.lang.value, element.base),
+            this.service.googleTranslate(this.lang.value, element.base),
         },
       }
     );

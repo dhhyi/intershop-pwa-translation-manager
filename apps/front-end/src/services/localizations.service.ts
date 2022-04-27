@@ -119,7 +119,7 @@ export class LocalizationsService {
       });
   }
 
-  translate(lang: string, text: string): Observable<string> {
+  googleTranslate(lang: string, text: string): Observable<string> {
     return this.http.post(
       "/translate",
       { lang, text },
