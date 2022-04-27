@@ -1,6 +1,6 @@
 import { Component, OnDestroy } from "@angular/core";
 import { FormBuilder, FormControl } from "@angular/forms";
-import { MatDialog, MatDialogRef } from "@angular/material/dialog";
+import { MatDialog } from "@angular/material/dialog";
 import { ActivatedRoute, Router } from "@angular/router";
 import {
   faArrowCircleLeft,
@@ -301,14 +301,17 @@ export class TranslationDetailComponent implements OnDestroy {
       tr: element.interpolated,
     };
 
-    const ref: MatDialogRef<EditDialogComponent, string> = this.dialog.open(
+    const ref = this.dialog.open<
       EditDialogComponent,
-      {
-        data: {
-          element: translateElement,
-        },
-      }
-    );
+      EditDialogComponent["data"],
+      string
+    >(EditDialogComponent, {
+      data: {
+        element: translateElement,
+        baseLang: this.config.get("baseLang"),
+        targetLang: element.updateLang,
+      },
+    });
 
     ref
       .afterClosed()

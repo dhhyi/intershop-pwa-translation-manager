@@ -2,7 +2,11 @@ import { Component, Inject, OnDestroy } from "@angular/core";
 import { FormBuilder, FormControl, FormGroup } from "@angular/forms";
 import { MAT_DIALOG_DATA } from "@angular/material/dialog";
 import { DomSanitizer, SafeHtml } from "@angular/platform-browser";
-import { TranslateCompiler, TranslateParser } from "@ngx-translate/core";
+import {
+  TranslateCompiler,
+  TranslateParser,
+  TranslateService,
+} from "@ngx-translate/core";
 import {
   BehaviorSubject,
   combineLatest,
@@ -132,11 +136,14 @@ export class EditDialogComponent implements OnDestroy {
     @Inject(MAT_DIALOG_DATA)
     public data: {
       element: LocalizationWithBaseType;
-      google: Observable<string>;
+      baseLang: string;
+      targetLang: string;
+      google?: Observable<string>;
     },
     private fb: FormBuilder,
     private compiler: TranslateCompiler,
     private parser: TranslateParser,
+    private translateService: TranslateService,
     sanitizer: DomSanitizer
   ) {
     this.key = data.element.key;
@@ -155,7 +162,7 @@ export class EditDialogComponent implements OnDestroy {
     const params = this.parameters.valueChanges.pipe(startWith({}));
 
     this.interpolationBase$ = combineLatest([of(this.base), params]).pipe(
-      map(([tr, p]) => this.renderTranslation(tr, p)),
+      map(([tr, p]) => this.renderTranslation(data.baseLang, tr, p)),
       map((interpolated) => sanitizer.bypassSecurityTrustHtml(interpolated))
     );
 
@@ -164,7 +171,7 @@ export class EditDialogComponent implements OnDestroy {
       this.translation.valueChanges.pipe(startWith(data.element.tr)),
       params,
     ]).pipe(
-      map(([tr, p]) => this.renderTranslation(tr, p)),
+      map(([tr, p]) => this.renderTranslation(data.targetLang, tr, p)),
       map((interpolated) => sanitizer.bypassSecurityTrustHtml(interpolated))
     );
 
@@ -173,14 +180,13 @@ export class EditDialogComponent implements OnDestroy {
     });
   }
 
-  private renderTranslation(tr: string, params: object): string {
+  private renderTranslation(lang: string, tr: string, params: object): string {
     try {
-      return this.parser.interpolate(
-        this.compiler.compile(tr, undefined),
-        params
-      );
+      this.translateService.use(lang);
+      return this.parser.interpolate(this.compiler.compile(tr, lang), params);
     } catch (err) {
-      return err instanceof Error ? err.message : err.toString();
+      console.error(err);
+      return "ERROR";
     }
   }
 

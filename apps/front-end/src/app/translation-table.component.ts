@@ -469,17 +469,20 @@ export class TranslationTableComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    const ref: MatDialogRef<EditDialogComponent, string> = this.dialog.open(
+    const ref = this.dialog.open<
       EditDialogComponent,
-      {
-        data: {
-          element,
-          google:
-            this.config.get("translateAvailable") &&
-            this.service.googleTranslate(this.lang.value, element.base),
-        },
-      }
-    );
+      EditDialogComponent["data"],
+      string
+    >(EditDialogComponent, {
+      data: {
+        element,
+        baseLang: this.config.get("baseLang"),
+        targetLang: this.lang.value,
+        google:
+          this.config.get("translateAvailable") &&
+          this.service.googleTranslate(this.lang.value, element.base),
+      },
+    });
 
     ref
       .afterClosed()
