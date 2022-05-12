@@ -25,7 +25,7 @@ import { LocalizationWithBaseType } from "../services/localizations.service";
   template: `
     <h1 mat-dialog-title>{{ key }}</h1>
     <div mat-dialog-content>
-      <pre>{{ base | json }}</pre>
+      <pre>{{ base }}</pre>
       <mat-card>
         <div [innerHTML]="interpolationBase$ | async"></div>
       </mat-card>
